@@ -50,8 +50,9 @@ export const PACKET = {
  * @return {Buffer}
  */
 export function encodePacket(data) {
-  let type = PID[data.shift()];
+  let type = PID[data[0]];
   let packet = PACKET[type];
+  let array = null;
   let kind = packet.kind;
   switch (kind) {
     case TYPE.UINT8:
@@ -63,6 +64,33 @@ export function encodePacket(data) {
       return (array.buffer);
     break;
   };
+}
+
+/**
+ * @param {Buffer} buffer
+ * @return {Array*}
+ */
+export function decodePacket(buffer) {
+  let type = PID[buffer[0] << 0];
+  let kind = PACKET[type].kind;
+  let decoded = null;
+  switch (kind) {
+    case TYPE.UINT8:
+      decoded = new Uint8Array(buffer);
+    break;
+    case TYPE.UINT16:
+      let bytes = Uint16Array.BYTES_PER_ELEMENT;
+      let length = (buffer.length / bytes) << 0 || 1;
+      decoded = new Uint16Array(length);
+      for (let ii = 0; ii < length; ++ii) {
+        decoded[ii] = buffer[ii * bytes];
+      };
+    break;
+    case TYPE.UINT32:
+      decoded = new Uint32Array(buffer);
+    break;
+  };
+  return (decoded);
 }
 
 /**

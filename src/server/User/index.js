@@ -1,4 +1,6 @@
 import {
+  encodePacket,
+  decodePacket,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../../packet";
@@ -12,7 +14,11 @@ import {
  */
 export default class User {
 
-  /** @constructor */
+  /**
+   * @param {WebSocket} socket
+   * @param {Client} instance
+   * @constructor
+   */
   constructor(socket, instance) {
 
     this.uid = getUniqueHash();
@@ -25,21 +31,22 @@ export default class User {
 
   sendHandshake() {
     let data = [PID.HANDSHAKE, this.uid];
-    let buffer = new Uint8Array(data).buffer;
-    this.send(buffer);
+    let packet = encodePacket(data);
+    this.send(packet);
   }
 
   sendNearbyPlayers() {
     let data = [PID.NEARBY_PLAYERS];
     let ii = 0;
     let users = this.users;
+    let packet = null;
     for (; ii < users.length; ++ii) {
       if (users[ii].uid !== this.uid) {
         data.push(users[ii].uid);
       }
     };
-    let buffer = new Uint16Array(data).buffer;
-    this.send(buffer);
+    packet = encodePacket(data);
+    this.send(packet);
   }
 
   /**
@@ -67,10 +74,8 @@ export default class User {
    */
   onMessage(buffer) {
     if (buffer instanceof Buffer && buffer.length >= 1) {
-      let view = new DataView(new Uint8Array(buffer).buffer);
-      if (isValidPacket(view)) {
-        this.processMessage(view);
-      }
+      let packet = decodePacket(buffer);
+      this.processPacket(packet);
     }
   }
 
@@ -83,25 +88,24 @@ export default class User {
   }
 
   /**
-   * @param {DataView} view
+   * @param {Array*} data
    */
-  processMessage(view) {
-    let type = view.getUint8(0);
+  processPacket(data) {
+    let type = data[0];
+    let packet = null;
     switch (type) {
       case PID.HANDSHAKE:
         console.log(this.uid + " joined");
-        this.broadcast(
-          new Uint8Array([PID.JOIN, this.uid])
-        );
+        packet = encodePacket([PID.JOIN, this.uid]);
+        this.broadcast(packet);
       break;
       case PID.JUMP:
         console.log(this.uid + " jumped");
-        this.broadcast(
-          new Uint8Array([PID.JUMP, this.uid]).buffer
-        );
+        packet = encodePacket([PID.JUMP, this.uid]);
+        this.broadcast(packet);
       break;
       case PID.MOVE:
-        let key = view.getUint8(1);
+        let key = data[1];
         switch (key) {
           case 37:
             console.log(this.uid + " moved left");
@@ -116,9 +120,8 @@ export default class User {
             console.log(this.uid + " moved down");
           break;
         };
-        this.broadcast(
-          new Uint8Array([PID.MOVE, this.uid, key]).buffer
-        );
+        packet = encodePacket([PID.MOVE, this.uid, key]);
+        this.broadcast(packet);
       break;
       case PID.NEARBY_PLAYERS:
         console.log(this.uid + " wants nearby players");

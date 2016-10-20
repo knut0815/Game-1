@@ -52,12 +52,7 @@ export default class NetworkEntity {
 	}
 
 	onMessage(buffer) {
-		if (buffer instanceof Buffer && buffer.length >= 1) {
-      let view = new DataView(new Uint8Array(buffer).buffer);
-      if (isValidPacket(view)) {
-        this.routeMessage(view);
-      }
-    }
+		this.routeMessage(buffer);
 	}
 
 	routeMessage(view) {

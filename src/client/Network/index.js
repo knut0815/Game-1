@@ -3,6 +3,8 @@ import {
 } from "../../cfg";
 
 import {
+  encodePacket,
+  decodePacket,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../../packet";
@@ -69,21 +71,19 @@ export default class Network {
   }
 
   onMessage(e) {
-    let buffer = e.data;
-    if (buffer instanceof ArrayBuffer && buffer.byteLength >= 1) {
-      let view = new DataView(buffer);
-      if (isValidPacket(view)) {
-        this.processMessage(view);
-      }
+    let data = e.data;
+    if (data instanceof ArrayBuffer && data.byteLength >= 1) {
+      this.processPacket(new Buffer(data));
     }
   }
 
   /**
-   * @param {DataView} view
+   * @param {Buffer} buffer
    */
-  processMessage(view) {
-    let type = view.getUint8(0);
-    let user = view.getUint8(1);
+  processPacket(buffer) {
+    let packet = decodePacket(buffer);
+    let type = packet[0];
+    let user = packet[1];
     switch (type) {
       case PID.HANDSHAKE:
         console.log("Received handshake!");
@@ -100,7 +100,7 @@ export default class Network {
         console.log(user + " jumped!");
       break;
       case PID.MOVE:
-        let key = view.getUint8(2);
+        let key = packet[2];
         switch (key) {
           case 37:
             console.log(user + " moved left");
@@ -117,11 +117,15 @@ export default class Network {
         };
       break;
       case PID.NEARBY_PLAYERS:
-        let ii = 1;
-        let length = view.byteLength;
-        for (; ii < length; ++ii) {
-          console.log(view.getUint8(ii));
+        let players = "";
+        let index = 0;
+        for (let ii = 0; ii < packet.length; ++ii) {
+          if (ii > 0) {
+            players += packet[ii];
+            if (ii + 1 < packet.length) players += ", ";
+          }
         };
+        console.log("Nearby players: " + players);
       break;
     };
   }

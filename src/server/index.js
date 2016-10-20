@@ -78,6 +78,7 @@ export default class Server {
     let users = this.users;
     for (; ii < users.length; ++ii) {
       if (users[ii].uid === user.uid) {
+        this.users[ii] = null;
         this.users.splice(ii, 1);
       }
     };
