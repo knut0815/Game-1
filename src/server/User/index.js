@@ -19,12 +19,26 @@ export default class User {
 
     this.socket = socket;
     this.instance = instance;
+    this.users = instance.users;
 
   }
 
   sendHandshake() {
     let data = [PID.HANDSHAKE, this.uid];
     let buffer = new Uint8Array(data).buffer;
+    this.send(buffer);
+  }
+
+  sendNearbyPlayers() {
+    let data = [PID.NEARBY_PLAYERS];
+    let ii = 0;
+    let users = this.users;
+    for (; ii < users.length; ++ii) {
+      if (users[ii].uid !== this.uid) {
+        data.push(users[ii].uid);
+      }
+    };
+    let buffer = new Uint16Array(data).buffer;
     this.send(buffer);
   }
 
@@ -40,7 +54,7 @@ export default class User {
    */
   broadcast(buffer) {
     let ii = 0;
-    let users = this.instance.users;
+    let users = this.users;
     for (; ii < users.length; ++ii) {
       if (users[ii].uid !== this.uid) {
         users[ii].send(buffer);
@@ -61,6 +75,9 @@ export default class User {
   }
 
   onClose() {
+    this.broadcast(
+      new Uint8Array([PID.EXIT, this.uid])
+    );
     this.instance.removeUser(this);
     this.socket.close();
   }
@@ -72,7 +89,10 @@ export default class User {
     let type = view.getUint8(0);
     switch (type) {
       case PID.HANDSHAKE:
-        console.log("handshake");
+        console.log(this.uid + " joined");
+        this.broadcast(
+          new Uint8Array([PID.JOIN, this.uid])
+        );
       break;
       case PID.JUMP:
         console.log(this.uid + " jumped");
@@ -99,6 +119,10 @@ export default class User {
         this.broadcast(
           new Uint8Array([PID.MOVE, this.uid, key]).buffer
         );
+      break;
+      case PID.NEARBY_PLAYERS:
+        console.log(this.uid + " wants nearby players");
+        this.sendNearbyPlayers();
       break;
     };
   }

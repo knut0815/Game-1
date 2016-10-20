@@ -1,3 +1,4 @@
+import Grid from "./Grid";
 import Network from "./Network";
 
 import {
@@ -15,6 +16,8 @@ export default class Client {
 
   /** @constructor */
   constructor() {
+    this.grid = new Grid(this);
+    //this.local = new MapEntity(this);
     this.network = new Network(this);
   }
 
@@ -25,18 +28,6 @@ let client = new Client();
 window.addEventListener("keydown", (e) => {
 
   switch (e.keyCode) {
-    /*case 37:
-      console.log("left");
-    break;
-    case 39:
-      console.log("right");
-    break;
-    case 38:
-      console.log("up");
-    break;
-    case 40:
-      console.log("down");
-    break;*/
     case 32:
       client.network.send(
         new Uint8Array([PID.JUMP]).buffer

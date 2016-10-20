@@ -1,6 +1,7 @@
 import ws from "ws";
 
 import User from "./User";
+import NetworkEntity from "../shared/NetworkEntity";
 
 import {
   WS_PORT,

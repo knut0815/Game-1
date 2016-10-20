@@ -9,3 +9,5 @@ export const MAX_CONNECTIONS = 64;
 export const DEV_MODE = true;
 
 export const PUBLIC_PATH = process.cwd() + "/static/";
+
+export const IS_SERVER = !!(typeof window === "undefined");

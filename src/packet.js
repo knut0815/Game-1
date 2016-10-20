@@ -5,8 +5,8 @@ PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
 PID[PID["JUMP"] = idx++] = "JUMP";
-PID[PID["FACE"] = idx++] = "FACE";
 PID[PID["HANDSHAKE"] = idx++] = "HANDSHAKE";
+PID[PID["NEARBY_PLAYERS"] = idx++] = "NEARBY_PLAYERS";
 
 export const TYPE = {};
 TYPE[TYPE["INT8"] = idx++] = "INT8";
@@ -19,31 +19,59 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 export const PACKET = {
-  HS: {
-    id: PID.HS,
-    type: TYPE.UINT8
-  },
   JOIN: {
-    id: PID.JOIN,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
   EXIT: {
-    id: PID.EXIT,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
   MOVE: {
-    id: PID.MOVE,
-    type: TYPE.UINT16
+    kind: TYPE.UINT16,
+    broadcast: true
   },
   JUMP: {
-    id: PID.JUMP,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
-  FACE: {
-    id: PID.FACE,
-    type: TYPE.UINT8
+  HANDSHAKE: {
+    kind: TYPE.UINT8,
+    broadcast: false
+  },
+  NEARBY_PLAYERS: {
+    kind: TYPE.UINT16,
+    broadcast: false
   }
 };
+
+/**
+ * @param {Array} data
+ * @return {Buffer}
+ */
+export function encodePacket(data) {
+  let type = PID[data.shift()];
+  let packet = PACKET[type];
+  let kind = packet.kind;
+  switch (kind) {
+    case TYPE.UINT8:
+      array = new Uint8Array(data);
+      return (array.buffer);
+    break;
+    case TYPE.UINT16:
+      array = new Uint16Array(data);
+      return (array.buffer);
+    break;
+  };
+}
+
+/**
+ * @param {Number} kind
+ * @return {Object}
+ */
+export function getPacketByKind(kind) {
+  return (PACKET[PID[kind]]);
+}
 
 /**
  * @param {DataView} view

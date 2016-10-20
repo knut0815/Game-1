@@ -199,8 +199,138 @@ var DEV_MODE = exports.DEV_MODE = true;
 
 var PUBLIC_PATH = exports.PUBLIC_PATH = process.cwd() + "/static/";
 
+var IS_SERVER = exports.IS_SERVER = !!(typeof window === "undefined");
+
 }).call(this,require('_process'))
 },{"_process":1}],3:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * @class Grid
+ */
+var Grid = function () {
+
+	/**
+  * @param {Instance} instance
+  */
+	function Grid(instance) {
+		_classCallCheck(this, Grid);
+
+		this.width = 0;
+		this.height = 0;
+		this.array = [];
+		this.instance = instance;
+		this.resize(8, 4);
+		this.setTile(2, 2, 1);
+		this.getTile(2, 2);
+	}
+
+	/**
+  * @param {Number} width
+  * @param {Number} height
+  */
+
+
+	_createClass(Grid, [{
+		key: "resize",
+		value: function resize(width, height) {
+			this.width = width;
+			this.height = height;
+			this.resizeArray(width, height);
+		}
+
+		/**
+   * @param {Number} width
+   * @param {Number} height
+   */
+
+	}, {
+		key: "resizeArray",
+		value: function resizeArray(width, height) {
+			this.array = [];
+			var ii = 0;
+			var size = width * height;
+			for (; ii < size; ++ii) {
+				this.array[ii] = 0;
+			};
+		}
+
+		/**
+   * @param {Number} x
+   * @param {Number} y
+   * @return {Number}
+   */
+
+	}, {
+		key: "getTileIndex",
+		value: function getTileIndex(x, y) {
+			return y-- * this.width + x--;
+		}
+
+		/**
+   * @param {Number} x
+   * @param {Number} y
+   * @param {Number} n
+   */
+
+	}, {
+		key: "setTile",
+		value: function setTile(x, y, n) {
+			var tile = this.getTileIndex(x, y);
+			this.array[tile] = n;
+		}
+
+		/**
+   * @param {Number} x
+   * @param {Number} y
+   * @return {Number}
+   */
+
+	}, {
+		key: "getTile",
+		value: function getTile(x, y) {
+			var tile = this.getTileIndex(x, y);
+			return this.array[tile];
+		}
+
+		/**
+   * @param {Number} tile
+   * @return {Boolean}
+   */
+
+	}, {
+		key: "isCollisionTile",
+		value: function isCollisionTile(tile) {
+			return tile === 1;
+		}
+
+		/**
+   * @param {Number} x
+   * @param {Number} y
+   * @return {Boolean}
+   */
+
+	}, {
+		key: "isCollisionAt",
+		value: function isCollisionAt(x, y) {
+			return this.isCollisionTile(this.getTile(x, y));
+		}
+	}]);
+
+	return Grid;
+}();
+
+exports.default = Grid;
+
+},{}],4:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -272,6 +402,13 @@ var Network = function () {
       this.send(buffer);
     }
   }, {
+    key: "getNearbyPlayers",
+    value: function getNearbyPlayers() {
+      var data = [_packet.PID.NEARBY_PLAYERS];
+      var buffer = new Uint8Array(data).buffer;
+      this.send(buffer);
+    }
+  }, {
     key: "onClose",
     value: function onClose() {
       console.error("Closed WebSocket connection to " + this.getConnectionUrl());
@@ -301,35 +438,44 @@ var Network = function () {
     key: "processMessage",
     value: function processMessage(view) {
       var type = view.getUint8(0);
+      var user = view.getUint8(1);
       switch (type) {
         case _packet.PID.HANDSHAKE:
           console.log("Received handshake!");
-          console.log("Client id is " + view.getUint8(1));
+          console.log("Client id is " + user);
+          this.getNearbyPlayers();
           break;
         case _packet.PID.JOIN:
-          console.log("join");
+          console.log(user + " joined");
           break;
         case _packet.PID.EXIT:
-          console.log("exit");
+          console.log(user + " left");
           break;
         case _packet.PID.JUMP:
-          console.log(view.getUint8(1) + " jumped!");
+          console.log(user + " jumped!");
           break;
         case _packet.PID.MOVE:
           var key = view.getUint8(2);
           switch (key) {
             case 37:
-              console.log(view.getUint8(1) + " moved left");
+              console.log(user + " moved left");
               break;
             case 39:
-              console.log(view.getUint8(1) + " moved right");
+              console.log(user + " moved right");
               break;
             case 38:
-              console.log(view.getUint8(1) + " moved up");
+              console.log(user + " moved up");
               break;
             case 40:
-              console.log(view.getUint8(1) + " moved down");
+              console.log(user + " moved down");
               break;
+          };
+          break;
+        case _packet.PID.NEARBY_PLAYERS:
+          var ii = 1;
+          var length = view.byteLength;
+          for (; ii < length; ++ii) {
+            console.log(view.getUint8(ii));
           };
           break;
       };
@@ -351,12 +497,16 @@ var Network = function () {
 
 exports.default = Network;
 
-},{"../../cfg":2,"../../packet":5}],4:[function(require,module,exports){
+},{"../../cfg":2,"../../packet":6}],5:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _Grid = require("./Grid");
+
+var _Grid2 = _interopRequireDefault(_Grid);
 
 var _Network = require("./Network");
 
@@ -381,6 +531,8 @@ var Client =
 function Client() {
   _classCallCheck(this, Client);
 
+  this.grid = new _Grid2.default(this);
+  //this.local = new MapEntity(this);
   this.network = new _Network2.default(this);
 };
 
@@ -392,18 +544,6 @@ var client = new Client();
 window.addEventListener("keydown", function (e) {
 
   switch (e.keyCode) {
-    /*case 37:
-      console.log("left");
-    break;
-    case 39:
-      console.log("right");
-    break;
-    case 38:
-      console.log("up");
-    break;
-    case 40:
-      console.log("down");
-    break;*/
     case 32:
       client.network.send(new Uint8Array([_packet.PID.JUMP]).buffer);
       break;
@@ -420,12 +560,14 @@ window.addEventListener("blur", function (e) {
   console.log("Window blurred!");
 });
 
-},{"../packet":5,"./Network":3}],5:[function(require,module,exports){
+},{"../packet":6,"./Grid":3,"./Network":4}],6:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.encodePacket = encodePacket;
+exports.getPacketByKind = getPacketByKind;
 exports.isValidPacket = isValidPacket;
 var idx = 0;
 
@@ -434,8 +576,8 @@ PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
 PID[PID["JUMP"] = idx++] = "JUMP";
-PID[PID["FACE"] = idx++] = "FACE";
 PID[PID["HANDSHAKE"] = idx++] = "HANDSHAKE";
+PID[PID["NEARBY_PLAYERS"] = idx++] = "NEARBY_PLAYERS";
 
 var TYPE = exports.TYPE = {};
 TYPE[TYPE["INT8"] = idx++] = "INT8";
@@ -448,31 +590,59 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 var PACKET = exports.PACKET = {
-  HS: {
-    id: PID.HS,
-    type: TYPE.UINT8
-  },
   JOIN: {
-    id: PID.JOIN,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
   EXIT: {
-    id: PID.EXIT,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
   MOVE: {
-    id: PID.MOVE,
-    type: TYPE.UINT16
+    kind: TYPE.UINT16,
+    broadcast: true
   },
   JUMP: {
-    id: PID.JUMP,
-    type: TYPE.UINT8
+    kind: TYPE.UINT8,
+    broadcast: true
   },
-  FACE: {
-    id: PID.FACE,
-    type: TYPE.UINT8
+  HANDSHAKE: {
+    kind: TYPE.UINT8,
+    broadcast: false
+  },
+  NEARBY_PLAYERS: {
+    kind: TYPE.UINT16,
+    broadcast: false
   }
 };
+
+/**
+ * @param {Array} data
+ * @return {Buffer}
+ */
+function encodePacket(data) {
+  var type = PID[data.shift()];
+  var packet = PACKET[type];
+  var kind = packet.kind;
+  switch (kind) {
+    case TYPE.UINT8:
+      array = new Uint8Array(data);
+      return array.buffer;
+      break;
+    case TYPE.UINT16:
+      array = new Uint16Array(data);
+      return array.buffer;
+      break;
+  };
+}
+
+/**
+ * @param {Number} kind
+ * @return {Object}
+ */
+function getPacketByKind(kind) {
+  return PACKET[PID[kind]];
+}
 
 /**
  * @param {DataView} view
@@ -482,5 +652,5 @@ function isValidPacket(view) {
   return PID[view.getUint8(0)] !== void 0;
 }
 
-},{}]},{},[4])(4)
+},{}]},{},[5])(5)
 });
