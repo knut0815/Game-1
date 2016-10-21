@@ -1,12 +1,16 @@
 let idx = 0;
 
 export const PID = {};
+PID[PID["BLUR"] = idx++] = "BLUR";
 PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
 PID[PID["JUMP"] = idx++] = "JUMP";
+PID[PID["USERNAME"] = idx++] = "USERNAME";
 PID[PID["HANDSHAKE"] = idx++] = "HANDSHAKE";
 PID[PID["NEARBY_PLAYERS"] = idx++] = "NEARBY_PLAYERS";
+PID[PID["GLOBAL_MESSAGE"] = idx++] = "GLOBAL_MESSAGE";
+PID[PID["PRIVATE_MESSAGE"] = idx++] = "PRIVATE_MESSAGE";
 
 export const TYPE = {};
 TYPE[TYPE["INT8"] = idx++] = "INT8";
@@ -19,6 +23,10 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 export const PACKET = {
+  BLUR: {
+    kind: TYPE.UINT8,
+    broadcast: true
+  },
   JOIN: {
     kind: TYPE.UINT8,
     broadcast: true
@@ -34,6 +42,18 @@ export const PACKET = {
   JUMP: {
     kind: TYPE.UINT8,
     broadcast: true
+  },
+  USERNAME: {
+    kind: TYPE.UINT8,
+    broadcast: false
+  },
+  GLOBAL_MESSAGE: {
+    kind: TYPE.UINT8,
+    broadcast: true
+  },
+  PRIVATE_MESSAGE: {
+    kind: TYPE.UINT8,
+    broadcast: false
   },
   HANDSHAKE: {
     kind: TYPE.UINT8,
@@ -61,6 +81,10 @@ export function encodePacket(data) {
     break;
     case TYPE.UINT16:
       array = new Uint16Array(data);
+      return (array.buffer);
+    break;
+    case TYPE.UINT32:
+      array = new Uint32Array(data);
       return (array.buffer);
     break;
   };
@@ -91,6 +115,35 @@ export function decodePacket(buffer) {
     break;
   };
   return (decoded);
+}
+
+/**
+ * @param {String} str
+ * @return {Array}
+ */
+export function encodeString(str) {
+  let out = str.split("");
+  let data = [];
+  let ii = 0;
+  let length = str.length;
+  for (; ii < length; ++ii) {
+    data.push(str[ii].charCodeAt(0));
+  };
+  return (data);
+}
+
+/**
+ * @param {Array} data
+ * @return {String}
+ */
+export function decodeString(data) {
+  let out = "";
+  let ii = 0;
+  let length = data.length;
+  for (; ii < length; ++ii) {
+    out += String.fromCharCode(data[ii]);
+  };
+  return (out);
 }
 
 /**

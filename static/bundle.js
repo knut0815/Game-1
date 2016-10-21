@@ -2400,16 +2400,27 @@ var Network = function () {
   }, {
     key: "sendHandshake",
     value: function sendHandshake() {
-      var data = [_packet.PID.HANDSHAKE, 0];
-      var buffer = new Uint8Array(data).buffer;
-      this.send(buffer);
+      var packet = (0, _packet.encodePacket)([_packet.PID.HANDSHAKE]);
+      this.send(packet);
+    }
+
+    /**
+     * @param {String} username
+     */
+
+  }, {
+    key: "sendUsername",
+    value: function sendUsername(username) {
+      var data = (0, _packet.encodeString)(username);
+      data.unshift(_packet.PID.USERNAME);
+      var packet = (0, _packet.encodePacket)(data);
+      this.send(packet);
     }
   }, {
     key: "getNearbyPlayers",
     value: function getNearbyPlayers() {
-      var data = [_packet.PID.NEARBY_PLAYERS];
-      var buffer = new Uint8Array(data).buffer;
-      this.send(buffer);
+      var packet = (0, _packet.encodePacket)([_packet.PID.NEARBY_PLAYERS]);
+      this.send(packet);
     }
   }, {
     key: "onClose",
@@ -2444,6 +2455,7 @@ var Network = function () {
         case _packet.PID.HANDSHAKE:
           console.log("Received handshake!");
           console.log("Client id is " + user);
+          this.sendUsername((Math.random() * 1e3 << 0) + "");
           this.getNearbyPlayers();
           break;
         case _packet.PID.JOIN:
@@ -2472,6 +2484,9 @@ var Network = function () {
               break;
           };
           break;
+        case _packet.PID.BLUR:
+          console.log(packet[1] + " " + (packet[2] ? "went afk" : "is back"));
+          break;
         case _packet.PID.NEARBY_PLAYERS:
           var players = "";
           var index = 0;
@@ -2482,6 +2497,14 @@ var Network = function () {
             }
           };
           console.log("Nearby players: " + players);
+          break;
+        case _packet.PID.GLOBAL_MESSAGE:
+          console.log((0, _packet.decodeString)(packet.slice(1)));
+          break;
+        case _packet.PID.PRIVATE_MESSAGE:
+          var msg = (0, _packet.decodeString)(packet);
+          console.log(packet);
+          console.log(msg);
           break;
       };
     }
@@ -2626,7 +2649,27 @@ window.addEventListener("keydown", function (e) {
 });
 
 window.addEventListener("blur", function (e) {
-  console.log("Window blurred!");
+  client.network.send((0, _packet.encodePacket)([_packet.PID.BLUR, 1]));
+});
+
+window.addEventListener("focus", function (e) {
+  client.network.send((0, _packet.encodePacket)([_packet.PID.BLUR, 0]));
+});
+
+send_global.addEventListener("click", function (e) {
+  var txt = global_msg.value;
+  var data = (0, _packet.encodeString)(txt);
+  data.unshift(_packet.PID.GLOBAL_MESSAGE);
+  client.network.send((0, _packet.encodePacket)(data));
+});
+
+send_private.addEventListener("click", function (e) {
+  var data = null;
+  data = (0, _packet.encodeString)(recipient.value);
+  data = data.concat((0, _packet.encodeString)(":"));
+  data = data.concat((0, _packet.encodeString)(private_msg.value));
+  data.unshift(_packet.PID.PRIVATE_MESSAGE);
+  client.network.send((0, _packet.encodePacket)(data));
 });
 
 },{"../packet":11,"./Grid":7,"./Network":8,"./Renderer":9}],11:[function(require,module,exports){
@@ -2637,17 +2680,23 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.encodePacket = encodePacket;
 exports.decodePacket = decodePacket;
+exports.encodeString = encodeString;
+exports.decodeString = decodeString;
 exports.getPacketByKind = getPacketByKind;
 exports.isValidPacket = isValidPacket;
 var idx = 0;
 
 var PID = exports.PID = {};
+PID[PID["BLUR"] = idx++] = "BLUR";
 PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
 PID[PID["JUMP"] = idx++] = "JUMP";
+PID[PID["USERNAME"] = idx++] = "USERNAME";
 PID[PID["HANDSHAKE"] = idx++] = "HANDSHAKE";
 PID[PID["NEARBY_PLAYERS"] = idx++] = "NEARBY_PLAYERS";
+PID[PID["GLOBAL_MESSAGE"] = idx++] = "GLOBAL_MESSAGE";
+PID[PID["PRIVATE_MESSAGE"] = idx++] = "PRIVATE_MESSAGE";
 
 var TYPE = exports.TYPE = {};
 TYPE[TYPE["INT8"] = idx++] = "INT8";
@@ -2660,6 +2709,10 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 var PACKET = exports.PACKET = {
+  BLUR: {
+    kind: TYPE.UINT8,
+    broadcast: true
+  },
   JOIN: {
     kind: TYPE.UINT8,
     broadcast: true
@@ -2675,6 +2728,18 @@ var PACKET = exports.PACKET = {
   JUMP: {
     kind: TYPE.UINT8,
     broadcast: true
+  },
+  USERNAME: {
+    kind: TYPE.UINT8,
+    broadcast: false
+  },
+  GLOBAL_MESSAGE: {
+    kind: TYPE.UINT8,
+    broadcast: true
+  },
+  PRIVATE_MESSAGE: {
+    kind: TYPE.UINT8,
+    broadcast: false
   },
   HANDSHAKE: {
     kind: TYPE.UINT8,
@@ -2702,6 +2767,10 @@ function encodePacket(data) {
       break;
     case TYPE.UINT16:
       array = new Uint16Array(data);
+      return array.buffer;
+      break;
+    case TYPE.UINT32:
+      array = new Uint32Array(data);
       return array.buffer;
       break;
   };
@@ -2732,6 +2801,35 @@ function decodePacket(buffer) {
       break;
   };
   return decoded;
+}
+
+/**
+ * @param {String} str
+ * @return {Array}
+ */
+function encodeString(str) {
+  var out = str.split("");
+  var data = [];
+  var ii = 0;
+  var length = str.length;
+  for (; ii < length; ++ii) {
+    data.push(str[ii].charCodeAt(0));
+  };
+  return data;
+}
+
+/**
+ * @param {Array} data
+ * @return {String}
+ */
+function decodeString(data) {
+  var out = "";
+  var ii = 0;
+  var length = data.length;
+  for (; ii < length; ++ii) {
+    out += String.fromCharCode(data[ii]);
+  };
+  return out;
 }
 
 /**

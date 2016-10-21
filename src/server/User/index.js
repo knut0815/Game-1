@@ -1,6 +1,7 @@
 import {
   encodePacket,
   decodePacket,
+  decodeString,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../../packet";
@@ -22,6 +23,8 @@ export default class User {
   constructor(socket, instance) {
 
     this.uid = getUniqueHash();
+
+    this.username = "";
 
     this.socket = socket;
     this.instance = instance;
@@ -54,6 +57,42 @@ export default class User {
    */
   send(buffer) {
     this.socket.send(buffer, this.instance.options);
+  }
+
+  /**
+   * @param {String} str
+   * @return {Boolean}
+   */
+  isValidUsername(str) {
+    return (
+      str instanceof String &&
+      str.length >= 6 &&
+      str.length >= 32
+    );
+  }
+
+  /**
+   * @param {String} username
+   * @return {User}
+   */
+  getSocketByUsername(username) {
+    let ii = 0;
+    let users = this.users;
+    for (; ii < users.length; ++ii) {
+      if (users[ii].username === username) {
+        return (users[ii]);
+      }
+    };
+    return (null);
+  }
+
+  /**
+   * @param {Buffer} buffer
+   * @param {String} username
+   */
+  sendToUserByUsername(buffer, username) {
+    let user = this.getSocketByUsername(username);
+    if (user !== null) user.send(buffer);
   }
 
   /**
@@ -105,8 +144,7 @@ export default class User {
         this.broadcast(packet);
       break;
       case PID.MOVE:
-        let key = data[1];
-        switch (key) {
+        switch (data[1]) {
           case 37:
             console.log(this.uid + " moved left");
           break;
@@ -120,12 +158,36 @@ export default class User {
             console.log(this.uid + " moved down");
           break;
         };
-        packet = encodePacket([PID.MOVE, this.uid, key]);
+        packet = encodePacket([PID.MOVE, this.uid, data[1]]);
         this.broadcast(packet);
+      break;
+      case PID.USERNAME:
+        let username = decodeString(data.slice(1));
+        this.username = username;
+        console.log(this.uid + " chose username " + this.username);
+      break;
+      case PID.BLUR:
+        console.log(this.uid + " " + (data[1] ? "went afk" : "is back"));
+        packet = encodePacket([PID.BLUR, this.uid, data[1]]);
+        this.broadcast(packet); 
       break;
       case PID.NEARBY_PLAYERS:
         console.log(this.uid + " wants nearby players");
         this.sendNearbyPlayers();
+      break;
+      case PID.GLOBAL_MESSAGE:
+        console.log(this.uid + " shouted " + decodeString(data.slice(1)));
+        packet = encodePacket(data);
+        this.broadcast(packet);
+      break;
+      case PID.PRIVATE_MESSAGE:
+        let msg = decodeString(data.slice(1));
+        let split = msg.split(":");
+        if (split.length >= 1 && split[1].length) {
+          console.log(this.uid + " whispered to " + split[0] + ":" + split[1]);
+        }
+        packet = encodePacket(data);
+        this.sendToUserByUsername(packet, split[0]);
       break;
     };
   }

@@ -5,6 +5,7 @@ import Renderer from "./Renderer";
 import {
   encodePacket,
   decodePacket,
+  encodeString,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../packet";
@@ -49,5 +50,25 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("blur", (e) => {
-  console.log("Window blurred!");
+  client.network.send(encodePacket([PID.BLUR, 1]));
+});
+
+window.addEventListener("focus", (e) => {
+  client.network.send(encodePacket([PID.BLUR, 0]));
+});
+
+send_global.addEventListener("click", (e) => {
+  let txt = global_msg.value;
+  let data = encodeString(txt);
+  data.unshift(PID.GLOBAL_MESSAGE);
+  client.network.send(encodePacket(data));
+});
+
+send_private.addEventListener("click", (e) => {
+  let data = null;
+  data = encodeString(recipient.value);
+  data = data.concat(encodeString(":"));
+  data = data.concat(encodeString(private_msg.value));
+  data.unshift(PID.PRIVATE_MESSAGE);
+  client.network.send(encodePacket(data));
 });

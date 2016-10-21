@@ -5,6 +5,8 @@ import {
 import {
   encodePacket,
   decodePacket,
+  encodeString,
+  decodeString,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../../packet";
@@ -51,15 +53,23 @@ export default class Network {
   }
 
   sendHandshake() {
-    let data = [PID.HANDSHAKE, 0];
-    let buffer = new Uint8Array(data).buffer;
-    this.send(buffer);
+    let packet = encodePacket([PID.HANDSHAKE]);
+    this.send(packet);
+  }
+
+  /**
+   * @param {String} username
+   */
+  sendUsername(username) {
+    let data = encodeString(username);
+    data.unshift(PID.USERNAME);
+    let packet = encodePacket(data);
+    this.send(packet);
   }
 
   getNearbyPlayers() {
-    let data = [PID.NEARBY_PLAYERS];
-    let buffer = new Uint8Array(data).buffer;
-    this.send(buffer);
+    let packet = encodePacket([PID.NEARBY_PLAYERS]);
+    this.send(packet);
   }
 
   onClose() {
@@ -88,6 +98,7 @@ export default class Network {
       case PID.HANDSHAKE:
         console.log("Received handshake!");
         console.log("Client id is " + user);
+        this.sendUsername(((Math.random() * 1e3) << 0) + "");
         this.getNearbyPlayers();
       break;
       case PID.JOIN:
@@ -116,6 +127,9 @@ export default class Network {
           break;
         };
       break;
+      case PID.BLUR:
+        console.log(packet[1] + " " + (packet[2] ? "went afk" : "is back"));
+      break;
       case PID.NEARBY_PLAYERS:
         let players = "";
         let index = 0;
@@ -126,6 +140,14 @@ export default class Network {
           }
         };
         console.log("Nearby players: " + players);
+      break;
+      case PID.GLOBAL_MESSAGE:
+        console.log(decodeString(packet.slice(1)));
+      break;
+      case PID.PRIVATE_MESSAGE:
+        let msg = decodeString(packet);
+        console.log(packet);
+        console.log(msg);
       break;
     };
   }

@@ -1,7 +1,13 @@
 <style>
   body { overflow: hidden; }
+  canvas { display:none; }
 </style>
 <body>
   <canvas id="game"></canvas>
+  <textarea id="global_msg" placeholder="Enter global message.."></textarea>
+  <button id="send_global">Send</button>
+  <textarea id="private_msg" placeholder="Enter private message.."></textarea>
+  <input id="recipient"></input>
+  <button id="send_private">Send</button>
   <script type="text/javascript" src="./bundle.js"></script>
 </body>
