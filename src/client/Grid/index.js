@@ -65,7 +65,7 @@ export default class Grid {
    */
   getTile(x, y) {
     let tile = this.getTileIndex(x, y);
-  	return (this.array[tile]);
+    return (this.array[tile]);
   }
 
   /**
