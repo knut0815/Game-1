@@ -1,3 +1,4 @@
+import poly from "./polyfill";
 import Server from "./server";
 import HTTPServer from "./http";
 

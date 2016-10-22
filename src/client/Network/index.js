@@ -19,6 +19,7 @@ export default class Network {
   /** @constructor */
   constructor() {
     this.ws = null;
+    this.users = [];
     this.connect();
   }
 
@@ -48,21 +49,15 @@ export default class Network {
 
   onOpen() {
     console.info(`Opened WebSocket connection to ${this.getConnectionUrl()}`);
+    // send handshake
     console.log("Sending handshake..");
     this.sendHandshake();
   }
 
   sendHandshake() {
-    let packet = encodePacket([PID.HANDSHAKE]);
-    this.send(packet);
-  }
-
-  /**
-   * @param {String} username
-   */
-  sendUsername(username) {
-    let data = encodeString(username);
-    data.unshift(PID.USERNAME);
+    let data = [PID.HANDSHAKE];
+    let username = window.location.search.split("username=")[1];
+    data.pushString(username);
     let packet = encodePacket(data);
     this.send(packet);
   }
@@ -88,24 +83,90 @@ export default class Network {
   }
 
   /**
+   * @param {Number} id
+   * @return {Number}
+   */
+  getUserIndexById(id) {
+    let ii = 0;
+    let users = this.users;
+    for (; ii < users.length; ++ii) {
+      if (users[ii].id === id) return (ii);
+    };
+    return (-1);
+  }
+
+  /**
+   * @param {Number} id
+   */
+  removeUserById(id) {
+    let idx = this.getUserIndexById(id);
+    if (idx !== -1) this.users.splice(idx, 1);
+  }
+
+  /**
+   * @param {Number} id
+   * @return {Object}
+   */
+  getUserById(id) {
+    let idx = this.getUserIndexById(id);
+    return (this.users[idx] || null);
+  }
+
+  /**
+   * @param {Array*} packet
+   */
+  decodeNearbyPlayers(packet) {
+    let ii = 1;
+    let length = packet.length;
+    let id = 0;
+    let idx = 0;
+    let obj = null;
+    let username = "";
+    for (; ii < length; ++ii) {
+      id = packet[ii];
+      ii++;
+      while (packet[ii] !== 44) {
+        username += String.fromCharCode(packet[ii++]);
+      };
+      idx = this.getUserIndexById(id);
+      obj = {
+        id: id,
+        username: username
+      };
+      // already exists
+      if (idx !== -1) {
+        this.users[idx] = obj;
+      }
+      this.users.push(obj);
+      username = "";
+    };
+  }
+
+  /**
    * @param {Buffer} buffer
    */
   processPacket(buffer) {
     let packet = decodePacket(buffer);
     let type = packet[0];
-    let user = packet[1];
+    let sessionId = packet[1];
+    let session = this.getUserById(sessionId);
+    let user = session ? session.username : session;
     switch (type) {
       case PID.HANDSHAKE:
         console.log("Received handshake!");
-        console.log("Client id is " + user);
-        this.sendUsername(((Math.random() * 1e3) << 0) + "");
         this.getNearbyPlayers();
       break;
       case PID.JOIN:
-        console.log(user + " joined");
+        console.log(packet);
+        this.users.push({
+          id: sessionId,
+          username: decodeString(packet.slice(2))
+        });
+        console.log(this.users[this.users.length - 1].username + " joined");
       break;
       case PID.EXIT:
         console.log(user + " left");
+        this.removeUserById(sessionId);
       break;
       case PID.JUMP:
         console.log(user + " jumped!");
@@ -127,27 +188,20 @@ export default class Network {
           break;
         };
       break;
-      case PID.BLUR:
-        console.log(packet[1] + " " + (packet[2] ? "went afk" : "is back"));
-      break;
       case PID.NEARBY_PLAYERS:
-        let players = "";
-        let index = 0;
-        for (let ii = 0; ii < packet.length; ++ii) {
-          if (ii > 0) {
-            players += packet[ii];
-            if (ii + 1 < packet.length) players += ", ";
-          }
-        };
-        console.log("Nearby players: " + players);
+        this.decodeNearbyPlayers(packet);
+        this.users.map((user) => {
+          console.log(user.id, user.username);
+        });
       break;
       case PID.GLOBAL_MESSAGE:
-        console.log(decodeString(packet.slice(1)));
+        let str = decodeString(packet.slice(2));
+        let msg = str.split(":")[1];
+        console.log(user, this.users);
+        console.log(user + ":" + msg);
       break;
       case PID.PRIVATE_MESSAGE:
-        let msg = decodeString(packet);
-        console.log(packet);
-        console.log(msg);
+        console.log(user + ":" + decodeString(packet.slice(1)));
       break;
     };
   }

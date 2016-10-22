@@ -2,6 +2,8 @@ import Grid from "./Grid";
 import Network from "./Network";
 import Renderer from "./Renderer";
 
+import poly from "../polyfill";
+
 import {
   encodePacket,
   decodePacket,
@@ -20,6 +22,7 @@ export default class Client {
 
   /** @constructor */
   constructor() {
+    this.node = game;
     this.grid = new Grid(this);
     this.network = new Network(this);
     this.renderer = new Renderer(this);
@@ -28,7 +31,7 @@ export default class Client {
 }
 
 let client = new Client();
-
+window.client = client;
 window.addEventListener("keydown", (e) => {
 
   let packet = null;
@@ -49,14 +52,7 @@ window.addEventListener("keydown", (e) => {
 
 });
 
-window.addEventListener("blur", (e) => {
-  client.network.send(encodePacket([PID.BLUR, 1]));
-});
-
-window.addEventListener("focus", (e) => {
-  client.network.send(encodePacket([PID.BLUR, 0]));
-});
-
+/*
 send_global.addEventListener("click", (e) => {
   let txt = global_msg.value;
   let data = encodeString(txt);
@@ -71,4 +67,4 @@ send_private.addEventListener("click", (e) => {
   data = data.concat(encodeString(private_msg.value));
   data.unshift(PID.PRIVATE_MESSAGE);
   client.network.send(encodePacket(data));
-});
+});*/

@@ -1,14 +1,18 @@
 import {
   encodePacket,
   decodePacket,
+  encodeString,
   decodeString,
   isValidPacket,
   PID, TYPE, PACKET
 } from "../../packet";
 
 import {
+  inherit,
   getUniqueHash
 } from "../../utils";
+
+import * as handlers from "./handler";
 
 /**
  * @class
@@ -24,32 +28,27 @@ export default class User {
 
     this.uid = getUniqueHash();
 
+    /**
+     * To detect packet loss
+     */
+    this.pid = 0;
+
+    /**
+     * Keep track of the last 100
+     * packets, so we can send them
+     * in case client got out of sync
+     */
+    this.packets = [];
+
     this.username = "";
+    this.usernameBinary = null;
+
+    this.isAuthenticated = false;
 
     this.socket = socket;
     this.instance = instance;
     this.users = instance.users;
 
-  }
-
-  sendHandshake() {
-    let data = [PID.HANDSHAKE, this.uid];
-    let packet = encodePacket(data);
-    this.send(packet);
-  }
-
-  sendNearbyPlayers() {
-    let data = [PID.NEARBY_PLAYERS];
-    let ii = 0;
-    let users = this.users;
-    let packet = null;
-    for (; ii < users.length; ++ii) {
-      if (users[ii].uid !== this.uid) {
-        data.push(users[ii].uid);
-      }
-    };
-    packet = encodePacket(data);
-    this.send(packet);
   }
 
   /**
@@ -65,9 +64,8 @@ export default class User {
    */
   isValidUsername(str) {
     return (
-      str instanceof String &&
-      str.length >= 6 &&
-      str.length >= 32
+      str.length >= 3 &&
+      str.length <= 16
     );
   }
 
@@ -84,6 +82,16 @@ export default class User {
       }
     };
     return (null);
+  }
+
+  /**
+   * @param {String} username
+   * @return {Boolean}
+   */
+  isAlreadyConnected(username) {
+    return (
+      this.getSocketByUsername(username) !== null
+    );
   }
 
   /**
@@ -119,10 +127,14 @@ export default class User {
   }
 
   onClose() {
-    this.broadcast(
-      new Uint8Array([PID.EXIT, this.uid])
-    );
-    this.instance.removeUser(this);
+    // user didnt pass auth ever,
+    // so better dont annoy anyone
+    if (this.isAuthenticated) {
+      this.broadcast(
+        new Uint8Array([PID.EXIT, this.uid])
+      );
+      this.instance.removeUser(this);
+    }
     this.socket.close();
   }
 
@@ -132,64 +144,32 @@ export default class User {
   processPacket(data) {
     let type = data[0];
     let packet = null;
+    // u shall not pass bitch
+    if (!this.isAuthenticated && type !== PID.HANDSHAKE) {
+      return void 0;
+    }
     switch (type) {
       case PID.HANDSHAKE:
-        console.log(this.uid + " joined");
-        packet = encodePacket([PID.JOIN, this.uid]);
-        this.broadcast(packet);
+        this.handleHandshake(data);
       break;
       case PID.JUMP:
-        console.log(this.uid + " jumped");
-        packet = encodePacket([PID.JUMP, this.uid]);
-        this.broadcast(packet);
+        this.handleJump(data);
       break;
       case PID.MOVE:
-        switch (data[1]) {
-          case 37:
-            console.log(this.uid + " moved left");
-          break;
-          case 39:
-            console.log(this.uid + " moved right");
-          break;
-          case 38:
-            console.log(this.uid + " moved up");
-          break;
-          case 40:
-            console.log(this.uid + " moved down");
-          break;
-        };
-        packet = encodePacket([PID.MOVE, this.uid, data[1]]);
-        this.broadcast(packet);
-      break;
-      case PID.USERNAME:
-        let username = decodeString(data.slice(1));
-        this.username = username;
-        console.log(this.uid + " chose username " + this.username);
-      break;
-      case PID.BLUR:
-        console.log(this.uid + " " + (data[1] ? "went afk" : "is back"));
-        packet = encodePacket([PID.BLUR, this.uid, data[1]]);
-        this.broadcast(packet); 
+        this.handleMove(data);
       break;
       case PID.NEARBY_PLAYERS:
-        console.log(this.uid + " wants nearby players");
-        this.sendNearbyPlayers();
+        this.handleNearbyPlayers();
       break;
       case PID.GLOBAL_MESSAGE:
-        console.log(this.uid + " shouted " + decodeString(data.slice(1)));
-        packet = encodePacket(data);
-        this.broadcast(packet);
+        this.handleGlobalMessage(data);
       break;
       case PID.PRIVATE_MESSAGE:
-        let msg = decodeString(data.slice(1));
-        let split = msg.split(":");
-        if (split.length >= 1 && split[1].length) {
-          console.log(this.uid + " whispered to " + split[0] + ":" + split[1]);
-        }
-        packet = encodePacket(data);
-        this.sendToUserByUsername(packet, split[0]);
+        this.handlePrivateMessage(data);
       break;
     };
   }
 
 }
+
+inherit(User, handlers);

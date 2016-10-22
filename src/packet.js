@@ -1,7 +1,6 @@
 let idx = 0;
 
 export const PID = {};
-PID[PID["BLUR"] = idx++] = "BLUR";
 PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
@@ -23,10 +22,6 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 export const PACKET = {
-  BLUR: {
-    kind: TYPE.UINT8,
-    broadcast: true
-  },
   JOIN: {
     kind: TYPE.UINT8,
     broadcast: true
@@ -130,6 +125,16 @@ export function encodeString(str) {
     data.push(str[ii].charCodeAt(0));
   };
   return (data);
+}
+
+/**
+ * @param {Number} cc
+ * @return {Boolean}
+ */
+export function isNumber(cc) {
+  return (
+    cc >= 48 && cc <= 57
+  );
 }
 
 /**

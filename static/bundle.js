@@ -2358,6 +2358,7 @@ var Network = function () {
     _classCallCheck(this, Network);
 
     this.ws = null;
+    this.users = [];
     this.connect();
   }
 
@@ -2394,25 +2395,16 @@ var Network = function () {
     key: "onOpen",
     value: function onOpen() {
       console.info("Opened WebSocket connection to " + this.getConnectionUrl());
+      // send handshake
       console.log("Sending handshake..");
       this.sendHandshake();
     }
   }, {
     key: "sendHandshake",
     value: function sendHandshake() {
-      var packet = (0, _packet.encodePacket)([_packet.PID.HANDSHAKE]);
-      this.send(packet);
-    }
-
-    /**
-     * @param {String} username
-     */
-
-  }, {
-    key: "sendUsername",
-    value: function sendUsername(username) {
-      var data = (0, _packet.encodeString)(username);
-      data.unshift(_packet.PID.USERNAME);
+      var data = [_packet.PID.HANDSHAKE];
+      var username = window.location.search.split("username=")[1];
+      data.pushString(username);
       var packet = (0, _packet.encodePacket)(data);
       this.send(packet);
     }
@@ -2442,6 +2434,78 @@ var Network = function () {
     }
 
     /**
+     * @param {Number} id
+     * @return {Number}
+     */
+
+  }, {
+    key: "getUserIndexById",
+    value: function getUserIndexById(id) {
+      var ii = 0;
+      var users = this.users;
+      for (; ii < users.length; ++ii) {
+        if (users[ii].id === id) return ii;
+      };
+      return -1;
+    }
+
+    /**
+     * @param {Number} id
+     */
+
+  }, {
+    key: "removeUserById",
+    value: function removeUserById(id) {
+      var idx = this.getUserIndexById(id);
+      if (idx !== -1) this.users.splice(idx, 1);
+    }
+
+    /**
+     * @param {Number} id
+     * @return {Object}
+     */
+
+  }, {
+    key: "getUserById",
+    value: function getUserById(id) {
+      var idx = this.getUserIndexById(id);
+      return this.users[idx] || null;
+    }
+
+    /**
+     * @param {Array*} packet
+     */
+
+  }, {
+    key: "decodeNearbyPlayers",
+    value: function decodeNearbyPlayers(packet) {
+      var ii = 1;
+      var length = packet.length;
+      var id = 0;
+      var idx = 0;
+      var obj = null;
+      var username = "";
+      for (; ii < length; ++ii) {
+        id = packet[ii];
+        ii++;
+        while (packet[ii] !== 44) {
+          username += String.fromCharCode(packet[ii++]);
+        };
+        idx = this.getUserIndexById(id);
+        obj = {
+          id: id,
+          username: username
+        };
+        // already exists
+        if (idx !== -1) {
+          this.users[idx] = obj;
+        }
+        this.users.push(obj);
+        username = "";
+      };
+    }
+
+    /**
      * @param {Buffer} buffer
      */
 
@@ -2450,19 +2514,25 @@ var Network = function () {
     value: function processPacket(buffer) {
       var packet = (0, _packet.decodePacket)(buffer);
       var type = packet[0];
-      var user = packet[1];
+      var sessionId = packet[1];
+      var session = this.getUserById(sessionId);
+      var user = session ? session.username : session;
       switch (type) {
         case _packet.PID.HANDSHAKE:
           console.log("Received handshake!");
-          console.log("Client id is " + user);
-          this.sendUsername((Math.random() * 1e3 << 0) + "");
           this.getNearbyPlayers();
           break;
         case _packet.PID.JOIN:
-          console.log(user + " joined");
+          console.log(packet);
+          this.users.push({
+            id: sessionId,
+            username: (0, _packet.decodeString)(packet.slice(2))
+          });
+          console.log(this.users[this.users.length - 1].username + " joined");
           break;
         case _packet.PID.EXIT:
           console.log(user + " left");
+          this.removeUserById(sessionId);
           break;
         case _packet.PID.JUMP:
           console.log(user + " jumped!");
@@ -2484,27 +2554,20 @@ var Network = function () {
               break;
           };
           break;
-        case _packet.PID.BLUR:
-          console.log(packet[1] + " " + (packet[2] ? "went afk" : "is back"));
-          break;
         case _packet.PID.NEARBY_PLAYERS:
-          var players = "";
-          var index = 0;
-          for (var ii = 0; ii < packet.length; ++ii) {
-            if (ii > 0) {
-              players += packet[ii];
-              if (ii + 1 < packet.length) players += ", ";
-            }
-          };
-          console.log("Nearby players: " + players);
+          this.decodeNearbyPlayers(packet);
+          this.users.map(function (user) {
+            console.log(user.id, user.username);
+          });
           break;
         case _packet.PID.GLOBAL_MESSAGE:
-          console.log((0, _packet.decodeString)(packet.slice(1)));
+          var str = (0, _packet.decodeString)(packet.slice(2));
+          var msg = str.split(":")[1];
+          console.log(user, this.users);
+          console.log(user + ":" + msg);
           break;
         case _packet.PID.PRIVATE_MESSAGE:
-          var msg = (0, _packet.decodeString)(packet);
-          console.log(packet);
-          console.log(msg);
+          console.log(user + ":" + (0, _packet.decodeString)(packet.slice(1)));
           break;
       };
     }
@@ -2558,21 +2621,104 @@ var Renderer = function () {
     this.width = 0;
     this.height = 0;
 
-    this.node = document.querySelector("#game");
-    this.onResize();
+    this.node = this.instance.node;
+
+    this.gl = (0, _utils.getWGLRenderingContext)(this.node);
 
     window.addEventListener("resize", this.onResize.bind(this));
+
+    this.init();
   }
 
   _createClass(Renderer, [{
+    key: "init",
+    value: function init() {
+      var gl = this.gl;
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+      gl.disable(gl.BLEND);
+
+      var buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]), gl.STATIC_DRAW);
+
+      buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0]), gl.STATIC_DRAW);
+      this.compileShaders();
+      this.onResize();
+      this.draw();
+    }
+  }, {
+    key: "compileShaders",
+    value: function compileShaders() {
+
+      var gl = this.gl;
+
+      var shaderSource;
+      var vertexShader;
+      var fragmentShader;
+
+      shaderSource = "\n      attribute vec4 aVertexPosition;\n\n      void main(void) {\n        gl_Position = aVertexPosition;\n      }\n    ";
+      vertexShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertexShader, shaderSource);
+      gl.compileShader(vertexShader);
+
+      shaderSource = "\n      precision mediump float;\n\n      uniform float vpw; // Width, in pixels\n      uniform float vph; // Height, in pixels\n\n      uniform vec2 offset;\n      uniform vec2 pitch;\n\n      void main() {\n        float lX = gl_FragCoord.x / 16.0;\n        float lY = gl_FragCoord.y / 16.0;\n\n        float scaleFactor = 1000000.0;\n\n        float offX = (scaleFactor * 100.0) + gl_FragCoord.x;\n        float offY = (scaleFactor * 100.0) + (1.0 - gl_FragCoord.y);\n\n        if (int(mod(offX, 0.05)) == 0 ||\n            int(mod(offY, 0.05)) == 0) {\n          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.5);\n        } else {\n          gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n        }\n      }\n    ";
+      fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragmentShader, shaderSource);
+      gl.compileShader(fragmentShader);
+
+      this.program = gl.createProgram();
+      gl.attachShader(this.program, vertexShader);
+      gl.attachShader(this.program, fragmentShader);
+      gl.linkProgram(this.program);
+      gl.useProgram(this.program);
+    }
+  }, {
+    key: "clear",
+    value: function clear() {
+      var gl = this.gl;
+      gl.clearColor(1, 0, 0, 0.5);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+  }, {
+    key: "draw",
+    value: function draw() {
+      var _this = this;
+
+      this.clear();
+      this.drawGrid();
+      this.drawEntities();
+      window.requestAnimationFrame(function () {
+        return _this.draw();
+      });
+    }
+  }, {
+    key: "drawGrid",
+    value: function drawGrid() {
+      var gl = this.gl;
+      var pos = gl.getAttribLocation(this.program, "aVertexPosition");
+      gl.enableVertexAttribArray(pos);
+      gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+  }, {
+    key: "drawEntities",
+    value: function drawEntities() {}
+  }, {
     key: "onResize",
     value: function onResize() {
+      var gl = this.gl;
       var width = window.innerWidth;
       var height = window.innerHeight;
       this.width = width;
       this.height = height;
       this.node.width = width;
       this.node.height = height;
+      gl.viewport(0, 0, width, height);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
   }]);
 
@@ -2581,7 +2727,7 @@ var Renderer = function () {
 
 exports.default = Renderer;
 
-},{"../../packet":11,"../../utils":12}],10:[function(require,module,exports){
+},{"../../packet":11,"../../utils":13}],10:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2599,6 +2745,10 @@ var _Network2 = _interopRequireDefault(_Network);
 var _Renderer = require("./Renderer");
 
 var _Renderer2 = _interopRequireDefault(_Renderer);
+
+var _polyfill = require("../polyfill");
+
+var _polyfill2 = _interopRequireDefault(_polyfill);
 
 var _packet = require("../packet");
 
@@ -2619,6 +2769,7 @@ var Client =
 function Client() {
   _classCallCheck(this, Client);
 
+  this.node = game;
   this.grid = new _Grid2.default(this);
   this.network = new _Network2.default(this);
   this.renderer = new _Renderer2.default(this);
@@ -2628,7 +2779,7 @@ exports.default = Client;
 
 
 var client = new Client();
-
+window.client = client;
 window.addEventListener("keydown", function (e) {
 
   var packet = null;
@@ -2648,31 +2799,24 @@ window.addEventListener("keydown", function (e) {
   };
 });
 
-window.addEventListener("blur", function (e) {
-  client.network.send((0, _packet.encodePacket)([_packet.PID.BLUR, 1]));
+/*
+send_global.addEventListener("click", (e) => {
+  let txt = global_msg.value;
+  let data = encodeString(txt);
+  data.unshift(PID.GLOBAL_MESSAGE);
+  client.network.send(encodePacket(data));
 });
 
-window.addEventListener("focus", function (e) {
-  client.network.send((0, _packet.encodePacket)([_packet.PID.BLUR, 0]));
-});
+send_private.addEventListener("click", (e) => {
+  let data = null;
+  data = encodeString(recipient.value);
+  data = data.concat(encodeString(":"));
+  data = data.concat(encodeString(private_msg.value));
+  data.unshift(PID.PRIVATE_MESSAGE);
+  client.network.send(encodePacket(data));
+});*/
 
-send_global.addEventListener("click", function (e) {
-  var txt = global_msg.value;
-  var data = (0, _packet.encodeString)(txt);
-  data.unshift(_packet.PID.GLOBAL_MESSAGE);
-  client.network.send((0, _packet.encodePacket)(data));
-});
-
-send_private.addEventListener("click", function (e) {
-  var data = null;
-  data = (0, _packet.encodeString)(recipient.value);
-  data = data.concat((0, _packet.encodeString)(":"));
-  data = data.concat((0, _packet.encodeString)(private_msg.value));
-  data.unshift(_packet.PID.PRIVATE_MESSAGE);
-  client.network.send((0, _packet.encodePacket)(data));
-});
-
-},{"../packet":11,"./Grid":7,"./Network":8,"./Renderer":9}],11:[function(require,module,exports){
+},{"../packet":11,"../polyfill":12,"./Grid":7,"./Network":8,"./Renderer":9}],11:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2681,13 +2825,13 @@ Object.defineProperty(exports, "__esModule", {
 exports.encodePacket = encodePacket;
 exports.decodePacket = decodePacket;
 exports.encodeString = encodeString;
+exports.isNumber = isNumber;
 exports.decodeString = decodeString;
 exports.getPacketByKind = getPacketByKind;
 exports.isValidPacket = isValidPacket;
 var idx = 0;
 
 var PID = exports.PID = {};
-PID[PID["BLUR"] = idx++] = "BLUR";
 PID[PID["JOIN"] = idx++] = "JOIN";
 PID[PID["EXIT"] = idx++] = "EXIT";
 PID[PID["MOVE"] = idx++] = "MOVE";
@@ -2709,10 +2853,6 @@ TYPE[TYPE["FLOAT32"] = idx++] = "FLOAT32";
 TYPE[TYPE["FLOAT64"] = idx++] = "FLOAT64";
 
 var PACKET = exports.PACKET = {
-  BLUR: {
-    kind: TYPE.UINT8,
-    broadcast: true
-  },
   JOIN: {
     kind: TYPE.UINT8,
     broadcast: true
@@ -2819,6 +2959,14 @@ function encodeString(str) {
 }
 
 /**
+ * @param {Number} cc
+ * @return {Boolean}
+ */
+function isNumber(cc) {
+  return cc >= 48 && cc <= 57;
+}
+
+/**
  * @param {Array} data
  * @return {String}
  */
@@ -2851,10 +2999,30 @@ function isValidPacket(view) {
 },{}],12:[function(require,module,exports){
 "use strict";
 
+var _packet = require("./packet");
+
+/**
+ * @param {String} str
+ */
+Array.prototype.pushString = function (str) {
+  var data = (0, _packet.encodeString)(str);
+  var ii = 0;
+  var length = data.length;
+  for (; ii < length; ++ii) {
+    this.push(data[ii]);
+  };
+  return void 0;
+};
+
+},{"./packet":11}],13:[function(require,module,exports){
+"use strict";
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.getUniqueHash = getUniqueHash;
+exports.inherit = inherit;
+exports.getWGLRenderingContext = getWGLRenderingContext;
 var idx = 0;
 
 /**
@@ -2865,6 +3033,36 @@ function getUniqueHash() {
     idx = 0;
   }
   return idx;
+}
+
+/**
+ * @param {Object} cls
+ * @param {Object} prot
+ * @export
+ */
+function inherit(cls, prot) {
+
+  var key = null;
+
+  for (key in prot) {
+    if (prot[key] instanceof Function) {
+      cls.prototype[key] = prot[key];
+    }
+  };
+}
+
+/**
+ * @return {WebGLRenderingContext}
+ */
+function getWGLRenderingContext(canvas) {
+  var options = {
+    alpha: false,
+    antialias: false,
+    premultipliedAlpha: false,
+    stencil: false,
+    preserveDrawingBuffer: false
+  };
+  return canvas.getContext("webgl", options) || canvas.getContext("experimental-webgl", options);
 }
 
 },{}]},{},[10])(10)

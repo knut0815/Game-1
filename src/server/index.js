@@ -64,10 +64,8 @@ export default class Server {
   onConnection(e) {
     if (this.users.length >= MAX_CONNECTIONS) return void 0;
     let user = new User(e, this);
-    this.users.push(user);
     e.on("message", user::user.onMessage);
     e.on("close", user::user.onClose);
-    user.sendHandshake();
   }
 
   /**
