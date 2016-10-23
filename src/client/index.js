@@ -52,6 +52,14 @@ window.addEventListener("keydown", (e) => {
 
 });
 
+window.addEventListener("mousewheel", (e) => {
+  e.preventDefault();
+  let value = (e.deltaY > 0 ? -1 : 1);
+  if (client.renderer.scale + value <= 5) return void 0;
+  if (client.renderer.scale + value >= 15) return void 0;
+  client.renderer.scale += value;
+});
+
 /*
 send_global.addEventListener("click", (e) => {
   let txt = global_msg.value;

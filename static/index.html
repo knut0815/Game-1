@@ -9,32 +9,5 @@
   <textarea id="private_msg" placeholder="Enter private message.."></textarea>
   <input id="recipient"></input>
   <button id="send_private">Send</button>-->
-	<script id="vs" type="x-shader/x-vertex">
-	  attribute vec2 position;
-
-		uniform float u_time;
-	  uniform mat4 u_modelViewPerspective;
-
-		varying vec3 vColor;
-
-		vec3 minColor = vec3(1.0, 0.0, 0.0);
-		vec3 maxColor = vec3(0.0, 0.0, 1.0);
-
-    void main(void) {
-			float s_contrib = 0.0*sin(position.x);
-			float t_contrib = 0.0*cos(position.y);
-			float height = s_contrib * t_contrib;
-			gl_Position = u_modelViewPerspective * vec4(vec3(position, height), 1.0);
-
-			vColor = mix(minColor, maxColor, 1.0);
-    }
-	</script>
-	<script id="fs" type="x-shader/x-fragment">
-    precision mediump float;
-		varying vec3 vColor;
-    void main(void) {
-		  gl_FragColor = vec4(vColor, 1.0);
-    }    
-</script>
   <script type="text/javascript" src="./bundle.js"></script>
 </body>
