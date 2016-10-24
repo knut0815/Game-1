@@ -1,8 +1,13 @@
 import Grid from "./Grid";
+import Camera from "./Camera";
 import Network from "./Network";
 import Renderer from "./Renderer";
 
 import poly from "../polyfill";
+
+import {
+  pointIntersectsRectangle
+} from "../math";
 
 import {
   encodePacket,
@@ -23,9 +28,36 @@ export default class Client {
   /** @constructor */
   constructor() {
     this.node = game;
+    this.entities = [];
     this.grid = new Grid(this);
+    this.camera = new Camera(this);
     this.network = new Network(this);
     this.renderer = new Renderer(this);
+    this.init();
+  }
+
+  init() {
+    this.entities.push({
+      x: 8,
+      y: 8,
+      width: 16,
+      height: 16
+    });
+  }
+
+  getEntityByPosition(x, y) {
+    let xx = x << 0;
+    let yy = y << 0;
+    let ii = 0;
+    let length = this.entities.length;
+    let entity = null;
+    for (; ii < length; ++ii) {
+      entity = this.entities[ii];
+      if (pointIntersectsRectangle(xx, yy, entity.x, entity.y, entity.width, entity.height)) {
+        return (entity);
+      }
+    };
+    return (null);
   }
 
 }
@@ -45,6 +77,16 @@ window.addEventListener("keydown", (e) => {
     case 39:
     case 38:
     case 40:
+      let speed = 10;
+      if (e.keyCode === 37) {
+        client.camera.onMove(speed, 0, 0);
+      } else if (e.keyCode === 39) {
+        client.camera.onMove(-speed, 0, 0);
+      } else if (e.keyCode === 38) {
+        client.camera.onMove(0, speed, 0);
+      } else if (e.keyCode === 40) {
+        client.camera.onMove(0, -speed, 0);
+      }
       packet = encodePacket([PID.MOVE, e.keyCode]);
       client.network.send(packet);
     break;
@@ -55,9 +97,38 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("mousewheel", (e) => {
   e.preventDefault();
   let value = (e.deltaY > 0 ? -1 : 1);
-  if (client.renderer.scale + value <= 5) return void 0;
-  if (client.renderer.scale + value >= 15) return void 0;
-  client.renderer.scale += value;
+  client.camera.onScale(value);
+});
+
+let selection = null;
+let isMouseDown = false;
+game.addEventListener("mousedown", (e) => {
+  e.preventDefault();
+  let x = e.clientX;
+  let y = e.clientY;
+  let position = client.camera.getGameRelativeOffset(x, y);
+  selection = client.getEntityByPosition(position.x, position.y);
+  if (selection === null) {
+    client.camera.drag.x = x / client.camera.scale;
+    client.camera.drag.y = y / client.camera.scale;
+  }
+  else {
+    console.log(selection);
+  }
+  isMouseDown = true;
+});
+
+game.addEventListener("mousemove", (e) => {
+  e.preventDefault();
+  if (!isMouseDown || selection !== null) return void 0;
+  let x = e.clientX / client.camera.scale;
+  let y = e.clientY / client.camera.scale;
+  client.camera.onDrag(x, y);
+});
+
+game.addEventListener("mouseup", (e) => {
+  e.preventDefault();
+  isMouseDown = false;
 });
 
 /*

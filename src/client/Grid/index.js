@@ -9,10 +9,10 @@ export default class Grid {
   constructor(instance) {
     this.width = 0;
     this.height = 0;
-    this.factor = 8;
+    this.factor = 1;
     this.array = [];
     this.instance = instance;
-    this.resize(8, 4);
+    this.resize(128, 64);
     this.setTile(2, 2, 1);
     this.getTile(2, 2);
   }

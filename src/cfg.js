@@ -11,3 +11,6 @@ export const DEV_MODE = true;
 export const PUBLIC_PATH = process.cwd() + "/static/";
 
 export const IS_SERVER = !!(typeof window === "undefined");
+
+export const MIN_SCALE = 5;
+export const MAX_SCALE = 15;
