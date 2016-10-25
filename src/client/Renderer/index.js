@@ -28,6 +28,7 @@ export default class Renderer {
 
     this.node = instance.node;
     this.ctx = this.node.getContext("2d");
+    this.ctx.imageSmoothingEnabled = false;
 
     window.addEventListener("resize", this::this.onResize);
 
@@ -64,6 +65,8 @@ export default class Renderer {
     let width = this.camera.size.x | 0;
     let height = this.camera.size.y | 0;
 
+    ctx.lineWidth = .5;
+
     // draw grid
     ctx.beginPath();
     for (; xx < width; xx += size) {
@@ -95,7 +98,7 @@ export default class Renderer {
     let height = (this.grid.height * scale) | 0;
 
     ctx.globalAlpha = .25;
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#FFF";
     ctx.fillRect(cx + x, cy + y, width, height);
     ctx.globalAlpha = 1.0;
 
@@ -119,21 +122,40 @@ export default class Renderer {
 
     let ctx = this.ctx;
 
-    let x = entity.x;
-    let y = entity.y;
-
     let scale = this.camera.scale;
 
     let cx = this.camera.position.x | 0;
     let cy = this.camera.position.y | 0;
+
+    let x = (cx + (entity.x * scale)) | 0;
+    let y = (cy + (entity.y * scale)) | 0;
 
     let width = (entity.width * scale) | 0;
     let height = (entity.height * scale) | 0;
 
     ctx.globalAlpha = .45;
     ctx.fillStyle = "red";
-    ctx.fillRect(cx + (x * scale), cy + (y * scale), width, height);
+    ctx.fillRect(x, y, width, height);
     ctx.globalAlpha = 1.0;
+
+    if (entity.hasTexture && entity.texture.isLoaded) {
+      let buffer = entity.texture.buffer.canvas;
+      //console.log(entity.texture.width / entity.width, entity.texture.height / entity.height);
+      /*ctx.drawImage(
+        entity.texture.buffer.canvas,
+        0, 0,
+        entity.width * 2, entity.height * 2,
+        x, y,
+        width, height
+      );*/
+      ctx.drawImage(
+        buffer,
+        (entity.width * 3) * 2, (entity.height * entity.frame) * 2,
+        entity.width * 2, entity.height * 2,
+        x, y,
+        width, height
+      );
+    }
 
   }
 
@@ -143,6 +165,7 @@ export default class Renderer {
     this.node.width = width;
     this.node.height = height;
     this.camera.onResize(width, height);
+    this.ctx.imageSmoothing = false;
   }
 
 }

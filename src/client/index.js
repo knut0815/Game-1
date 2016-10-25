@@ -3,6 +3,8 @@ import Camera from "./Camera";
 import Network from "./Network";
 import Renderer from "./Renderer";
 
+import MapEntity from "../shared/MapEntity";
+
 import poly from "../polyfill";
 
 import {
@@ -19,6 +21,8 @@ import {
 
 // ws support
 if (window.WebSocket === void 0) throw new Error("Your browser doesnt support WebSockets");
+
+let local = null;
 
 /**
  * @class
@@ -37,12 +41,15 @@ export default class Client {
   }
 
   init() {
-    this.entities.push({
-      x: 8,
-      y: 8,
-      width: 16,
-      height: 16
+    let entity = new MapEntity({
+      x: 4,
+      y: 4,
+      width: 7,
+      height: 12,
+      url: "assets/sprites/player_sheet.png"
     });
+    local = entity;
+    this.entities.push(entity);
   }
 
   getEntityByPosition(x, y) {
@@ -77,15 +84,19 @@ window.addEventListener("keydown", (e) => {
     case 39:
     case 38:
     case 40:
-      let speed = 10;
+      let speed = 1;
       if (e.keyCode === 37) {
-        client.camera.onMove(speed, 0, 0);
+        local.onMove(speed, 0);
+        //client.camera.onMove(speed, 0, 0);
       } else if (e.keyCode === 39) {
-        client.camera.onMove(-speed, 0, 0);
+        local.onMove(-speed, 0);
+        //client.camera.onMove(-speed, 0, 0);
       } else if (e.keyCode === 38) {
-        client.camera.onMove(0, speed, 0);
+        local.onMove(0, speed);
+        //client.camera.onMove(0, speed, 0);
       } else if (e.keyCode === 40) {
-        client.camera.onMove(0, -speed, 0);
+        local.onMove(0, -speed);
+        //client.camera.onMove(0, -speed, 0);
       }
       packet = encodePacket([PID.MOVE, e.keyCode]);
       client.network.send(packet);
@@ -97,6 +108,7 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("mousewheel", (e) => {
   e.preventDefault();
   let value = (e.deltaY > 0 ? -1 : 1);
+  client.camera.onClick(e.clientX, e.clientY);
   client.camera.onScale(value);
 });
 
@@ -109,8 +121,8 @@ game.addEventListener("mousedown", (e) => {
   let position = client.camera.getGameRelativeOffset(x, y);
   selection = client.getEntityByPosition(position.x, position.y);
   if (selection === null) {
-    client.camera.drag.x = x / client.camera.scale;
-    client.camera.drag.y = y / client.camera.scale;
+    client.camera.drag.x = x;
+    client.camera.drag.y = y;
   }
   else {
     console.log(selection);
@@ -121,8 +133,8 @@ game.addEventListener("mousedown", (e) => {
 game.addEventListener("mousemove", (e) => {
   e.preventDefault();
   if (!isMouseDown || selection !== null) return void 0;
-  let x = e.clientX / client.camera.scale;
-  let y = e.clientY / client.camera.scale;
+  let x = e.clientX;
+  let y = e.clientY;
   client.camera.onDrag(x, y);
 });
 

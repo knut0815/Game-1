@@ -4,7 +4,8 @@ import {
 } from "../../cfg";
 
 import {
-	Point
+	Point,
+	zoomScale
 } from "../../Math";
 
 /**
@@ -47,9 +48,19 @@ export default class Camera {
 	 * @param {Number} x
 	 * @param {Number} y
 	 */
+	onClick(x, y) {
+		let position = this.getGameRelativeOffset(x, y);
+		this.last.x = position.x;
+		this.last.y = position.y;
+	}
+
+	/**
+	 * @param {Number} x
+	 * @param {Number} y
+	 */
 	onDrag(x, y) {
-		this.position.x += (x - this.drag.x) * this.scale;
-		this.position.y += (y - this.drag.y) * this.scale;
+		this.position.x += x - this.drag.x;
+		this.position.y += y - this.drag.y;
 		this.drag.x = x;
 		this.drag.y = y;
 	}
@@ -71,7 +82,10 @@ export default class Camera {
 	onScale(n) {
 		if (this.scale + n <= MIN_SCALE) return void 0;
   	if (this.scale + n >= MAX_SCALE) return void 0;
+  	let scale = this.scale;
 		this.scale += n;
+		this.position.x -= this.last.x * (zoomScale(this.scale) - zoomScale(scale));
+		this.position.y -= this.last.y * (zoomScale(this.scale) - zoomScale(scale));
 	}
 
 	/**

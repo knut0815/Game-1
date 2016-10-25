@@ -28,6 +28,64 @@ export function inherit(cls, prot) {
 }
 
 /**
+ * @param {String} GET
+ */
+export function GET(url) {
+	url = `${url}`;
+  return new Promise((resolve, reject) => {
+    let req = new XMLHttpRequest();
+    req.open("GET", url);
+    req.onload = () => {
+      if (req.status === 200) {
+        resolve(req.response);
+      } else {
+        reject(new Error(req.statusText));
+      }
+    };
+    req.onerror = () => {
+      reject(new Error("Network error"));
+    };
+    req.send();
+  });
+}
+
+/**
+ * @param {String} url
+ * @return {Promise}
+ */
+export function getSprite(url) {
+
+	let img = new Image();
+
+	return new Promise((resolve) => {
+		img.src = url;
+		img.addEventListener("load", () => {
+			resolve(img);
+		});
+	});
+
+}
+
+/**
+ * @param {Image} img
+ * @return {CanvasRenderingContext2D}
+ */
+export function img2canvas(img) {
+
+	let canvas = document.createElement("canvas");
+	let context = canvas.getContext("2d");
+
+	canvas.width = img.width;
+	canvas.height = img.height;
+
+	context.imageSmoothing = false;
+	context.drawImage(img, 0, 0, img.width, img.height);
+
+	return (context);
+
+}
+
+/**
  * @return {WebGLRenderingContext}
  */
 export function getWGLRenderingContext(canvas) {

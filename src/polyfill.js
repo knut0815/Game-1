@@ -1,4 +1,8 @@
 import {
+	IS_CLIENT
+} from "./cfg";
+
+import {
 	encodeString
 } from "./packet";
 
@@ -13,4 +17,18 @@ Array.prototype.pushString = function(str) {
     this.push(data[ii]);
   };
   return void 0;
+}
+
+if (IS_CLIENT) {
+	Object.defineProperty(CanvasRenderingContext2D.prototype, "imageSmoothing", {
+		set: function(truth) {
+			this.imageSmoothingEnabled = truth;
+		  this.oImageSmoothingEnabled = truth;
+		  this.msImageSmoothingEnabled = truth;
+		  this.mozImageSmoothingEnabled = truth;
+		  this.webkitImageSmoothingEnabled = truth;
+		},
+		enumerable: true,
+	  configurable: true
+	});
 }

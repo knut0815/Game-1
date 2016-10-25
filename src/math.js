@@ -24,6 +24,18 @@ export class Point {
 }
 
 /**
+ * @param {Number}
+ * @param {Number}
+ */
+export function zoomScale(n) {
+  return (
+    n >= 0 ? n + 1 :
+    n < 0 ? -(n) + 1 :
+    n + 1
+  );
+}
+
+/**
  * @param {Number} x1
  * @param {Number} y1
  * @param {Number} x2
