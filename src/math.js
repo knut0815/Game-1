@@ -36,19 +36,16 @@ export function zoomScale(n) {
 }
 
 /**
- * @param {Number} x1
- * @param {Number} y1
- * @param {Number} x2
- * @param {Number} y2
- * @param {Number} width
- * @param {Number} height
+ * @param {Number} x
+ * @param {Number} y
+ * @param {MapEntity} entity
  * @return {Boolean}
  */
-export function pointIntersectsRectangle(x1, y1, x2, y2, width, height) {
+export function pointIntersectsEntity(x, y, entity) {
   return (
-    x1 >= x2 &&
-    x1 < x2 + width &&
-    y1 >= y2 &&
-    y1 < y2 + height
+    x >= entity.position.x &&
+    x < entity.position.x + entity.size.x &&
+    y >= entity.position.y &&
+    y < entity.position.y + entity.size.y
   );
 }

@@ -16,9 +16,13 @@ import {
  */
 export default class Network {
 
-  /** @constructor */
-  constructor() {
+  /**
+   * @param {Client} instance
+   * @constructor
+   */
+  constructor(instance) {
     this.ws = null;
+    this.instance = instance;
     this.users = [];
     this.connect();
   }
@@ -157,16 +161,18 @@ export default class Network {
         this.getNearbyPlayers();
       break;
       case PID.JOIN:
-        console.log(packet);
         this.users.push({
           id: sessionId,
           username: decodeString(packet.slice(2))
         });
-        console.log(this.users[this.users.length - 1].username + " joined");
+        let user = this.users[this.users.length - 1];
+        console.log(user.username + " joined");
+        this.instance.onJoin(user);
       break;
       case PID.EXIT:
         console.log(user + " left");
         this.removeUserById(sessionId);
+        this.instance.onExit(session);
       break;
       case PID.JUMP:
         console.log(user + " jumped!");
@@ -187,11 +193,12 @@ export default class Network {
             console.log(user + " moved down");
           break;
         };
+        this.instance.onMove(session, key);
       break;
       case PID.NEARBY_PLAYERS:
         this.decodeNearbyPlayers(packet);
         this.users.map((user) => {
-          console.log(user.id, user.username);
+          this.instance.onJoin(user);
         });
       break;
       case PID.GLOBAL_MESSAGE:

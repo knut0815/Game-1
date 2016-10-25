@@ -10,6 +10,10 @@ import {
   getWGLRenderingContext
 } from "../../utils";
 
+import {
+  DEV_MODE
+} from "../../cfg";
+
 /**
  * @class
  */
@@ -46,6 +50,7 @@ export default class Renderer {
   }
 
   draw() {
+    this.sort();
     this.clear();
     this.drawGrid();
     this.drawMap();
@@ -97,7 +102,7 @@ export default class Renderer {
     let width = (this.grid.width * scale) | 0;
     let height = (this.grid.height * scale) | 0;
 
-    ctx.globalAlpha = .25;
+    ctx.globalAlpha = .1;
     ctx.fillStyle = "#FFF";
     ctx.fillRect(cx + x, cy + y, width, height);
     ctx.globalAlpha = 1.0;
@@ -127,20 +132,22 @@ export default class Renderer {
     let cx = this.camera.position.x | 0;
     let cy = this.camera.position.y | 0;
 
-    let x = (cx + (entity.x * scale)) | 0;
-    let y = (cy + (entity.y * scale)) | 0;
+    let x = (cx + (entity.position.x * scale)) | 0;
+    let y = (cy + (entity.position.y * scale)) | 0;
 
-    let width = (entity.width * scale) | 0;
-    let height = (entity.height * scale) | 0;
+    let width = (entity.size.x * scale) | 0;
+    let height = (entity.size.y * scale) | 0;
 
-    ctx.globalAlpha = .45;
-    ctx.fillStyle = "red";
-    ctx.fillRect(x, y, width, height);
-    ctx.globalAlpha = 1.0;
+    if (DEV_MODE === true) {
+      ctx.globalAlpha = .1;
+      ctx.fillStyle = "blue";
+      ctx.fillRect(x, y, width, height);
+      ctx.globalAlpha = 1.0;
+    }
 
     if (entity.hasTexture && entity.texture.isLoaded) {
       let buffer = entity.texture.buffer.canvas;
-      //console.log(entity.texture.width / entity.width, entity.texture.height / entity.height);
+      //console.log(entity.texture.width / entity.size.x, entity.texture.height / entity.size.y);
       /*ctx.drawImage(
         entity.texture.buffer.canvas,
         0, 0,
@@ -150,13 +157,77 @@ export default class Renderer {
       );*/
       ctx.drawImage(
         buffer,
-        (entity.width * 3) * 2, (entity.height * entity.frame) * 2,
-        entity.width * 2, entity.height * 2,
+        (entity.size.x * 3) * 2, (entity.size.y * entity.frame) * 2,
+        entity.size.x * 2, entity.size.y * 2,
         x, y,
         width, height
       );
+      if (DEV_MODE === true) {
+        if (entity.isCollidable === true) {
+          this.drawCollisionBox(entity, x, y);
+        }
+      }
     }
 
+  }
+
+  /**
+   * @param {MapEntity} entity
+   * @param {Number} x
+   * @param {Number} y
+   */
+  drawCollisionBox(entity, x, y) {
+    let ii = 0;
+    let xx = 0;
+    let yy = 0;
+    let tile = 0;
+    let width = entity.size.x;
+    let height = entity.size.y;
+    let length = width * height;
+
+    let dim = this.camera.scale;
+
+    let ctx = this.ctx;
+    let collision = entity.collisionBox;
+
+    for (; ii < length; ++ii) {
+      tile = collision[yy + xx];
+      if (tile === 1) {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "red";
+        ctx.fillRect(
+          x + (xx * dim),
+          y + ((yy / width) * dim),
+          dim, dim
+        );
+        ctx.globalAlpha = 1.0;
+      }
+      ++xx;
+      if (xx >= width) {
+        yy += width;
+        xx = 0;
+      }
+    };
+
+  }
+
+  sort() {
+
+    let array = this.entities;
+
+    let ii = 0;
+    let jj = 0;
+    let key = null;
+    let length = array.length;
+
+    for (; ii < length; ++ii) {
+      jj = ii;
+      key = array[jj];
+      for (; jj > 0 && array[jj - 1].position.y > key.position.y; --jj) {
+        array[jj] = array[jj - 1];
+      };
+      array[jj] = key;
+    };
   }
 
   onResize() {

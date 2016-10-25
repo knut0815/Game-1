@@ -6,7 +6,7 @@ export const SERVER_FPS = 1e3 / 30;
 
 export const MAX_CONNECTIONS = 64;
 
-export const DEV_MODE = true;
+export const DEV_MODE = false;
 
 export const PUBLIC_PATH = process.cwd() + "/static/";
 
