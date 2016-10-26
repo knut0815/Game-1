@@ -16,6 +16,7 @@ export default class MapEntity {
 	constructor(obj) {
 		this.id = obj.id || 0;
 		this.size = new Point(obj.width || 0, obj.height || 0);
+		this.next = new Point(0, 0);
 		this.position = new Point(obj.x || 0, obj.y || 0);
 		this.texture = null;
 		this.frame = 0;
@@ -49,9 +50,8 @@ export default class MapEntity {
 		} else if (y > 0) {
 			this.frameIdx = 0;
 		}
-		if (!client.grid.entityCanMove(this)) return void 0;
-		this.position.x += x;
-		this.position.y += y;
+		this.next.x = this.position.x + x;
+		this.next.y = this.position.y + y;
 		this.isMoving = true;
 		this.frame = ++this.frame % this.frames;
 		setTimeout(() => {
@@ -62,10 +62,9 @@ export default class MapEntity {
 				this.frame = 0;
 			}
 		}, 120);
-	}
-
-	onUpdate() {
-
+		if (!client.grid.entityCanMoveTo(this)) return void 0;
+		this.position.x += x;
+		this.position.y += y;
 	}
 
 }

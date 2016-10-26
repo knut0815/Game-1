@@ -43,7 +43,7 @@ export default class Client {
 
   init() {
     this.addLocalPlayer({
-      x: 18,
+      x: 8,
       y: 8
     });
     /*this.entities.push(new MapEntity({

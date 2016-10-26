@@ -95,13 +95,17 @@ export default class Grid {
    * @param {MapEntity} entity
    * @return {Boolean}
    */
-  entityCanMove(entity) {
+  entityCanMoveTo(entity) {
+    if (!entity.isCollidable) return (true);
     let ii = 0;
     let length = this.entities.length;
+    let tmp = null;
     for (; ii < length; ++ii) {
-      if (this.entityOverlaps(entity, this.entities[ii])) {
-        return (false);
-      }
+      tmp = this.entities[ii];
+      // dont compare with ingoing entity
+      if (entity.id === tmp.id) continue;
+      if (tmp.isCollidable === false) continue;
+      if (this.entitiesDoCollide(entity, tmp)) return (false);
     };
     return (true);
   }
@@ -111,8 +115,35 @@ export default class Grid {
    * @param {MapEntity} entityB
    * @return {Boolean}
    */
-  entityOverlaps(entityA, entityB) {
-    return (true);
+  entitiesDoCollide(entityA, entityB) {
+    // check if entity rectangles overlap
+    if (this.entitiesOverlap(
+      entityA.next.x, entityA.next.y,
+      entityA.size.x, entityA.size.y,
+      entityB.position.x, entityB.position.y,
+      entityB.size.x, entityB.size.y
+    )) return (this.intersectCollisionBoxes(entityA, entityB));
+    return (false);
+  }
+
+  /**
+   * @param {Number} x1
+   * @param {Number} y1
+   * @param {Number} w1
+   * @param {Number} h1
+   * @param {Number} x2
+   * @param {Number} y2
+   * @param {Number} w2
+   * @param {Number} h2
+   * @return {Boolean}
+   */
+  entitiesOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return !(
+      x1 + w1 - 1 < x2 ||
+      y1 + h1 - 1 < y2 ||
+      x1 > x2 + w2 - 1 ||
+      y1 > y2 + h2 - 1
+    );
   }
 
   /**
@@ -125,12 +156,24 @@ export default class Grid {
     let boxA = entityA.collisionBox;
     let boxB = entityB.collisionBox;
 
+    let x1 = entityA.next.x;
+    let y1 = entityA.next.y;
+    let w1 = entityA.size.x;
+    let h1 = entityA.size.y;
+
+    let x2 = entityB.position.x;
+    let y2 = entityB.position.y;
+    let w2 = entityB.size.x;
+    let h2 = entityB.size.y;
+
     let ii = 0;
     let length = boxA.length;
+
     for (; ii < length; ++ii) {
-      if (boxA[ii] === 1 && boxB[entityA.position.x + ii] === 1) {
-        return (true);
-      }
+      if (boxA[ii] !== 1) continue;
+      let yy = (h2 + y1 - y2) - 1;
+      let xx = (w2 + x1 - x2) - 1;
+      if (boxB[yy * xx] === 1) return (true);
     };
 
     return (false);
