@@ -19,7 +19,10 @@ export default class MapEntity {
 		this.position = new Point(obj.x || 0, obj.y || 0);
 		this.texture = null;
 		this.frame = 0;
+		this.frames = obj.frames || 0;
+		this.frameIdx = 0;
 		this.hasTexture = obj.url !== void 0;
+		this.isMoving = false;
 		this.isLocal = obj.local || false;
 		this.isCollidable = obj.collidable === void 0 ? true : obj.collidable;
 		this.collisionBox = obj.collisionBox === void 0 ? [] : obj.collisionBox;
@@ -34,19 +37,31 @@ export default class MapEntity {
 	 * @param {Number} y
 	 */
 	onMove(x, y) {
+		if (this.isMoving) return void 0;
 		x = -x;
 		y = -y;
 		if (x < 0) {
-			this.frame = 2;
+			this.frameIdx = 2;
 		} else if (y < 0) {
-			this.frame = 1;
+			this.frameIdx = 1;
 		} else if (x > 0) {
-			this.frame = 3;
+			this.frameIdx = 3;
 		} else if (y > 0) {
-			this.frame = 0;
+			this.frameIdx = 0;
 		}
+		if (!client.grid.entityCanMove(this)) return void 0;
 		this.position.x += x;
 		this.position.y += y;
+		this.isMoving = true;
+		this.frame = ++this.frame % this.frames;
+		setTimeout(() => {
+			this.isMoving = false;
+		}, 60);
+		setTimeout(() => {
+			if (!this.isMoving) {
+				this.frame = 0;
+			}
+		}, 120);
 	}
 
 	onUpdate() {

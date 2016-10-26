@@ -43,7 +43,7 @@ export default class Client {
 
   init() {
     this.addLocalPlayer({
-      x: 8,
+      x: 18,
       y: 8
     });
     /*this.entities.push(new MapEntity({
@@ -63,6 +63,7 @@ export default class Client {
   addPlayer(obj) {
     obj.width = 7;
     obj.height = 12;
+    obj.frames = 6;
     obj.url = "assets/sprites/player_sheet.png";
     obj.collisionBox = [
       1, 0, 0, 0, 0, 0, 1,
@@ -225,29 +226,31 @@ window.addEventListener("keyup", (e) => {
 
 setInterval(() => {
   // movement
-  let speed = 1;
+  let spd = 1;
   let packet = null;
   for (let key in keys) {
     if (keys[key] === true) {
-      if (key === "LEFT") {
-        client.network.send(encodePacket([PID.MOVE, 37]));
-        local.onMove(speed, 0);
-      }
-      if (key === "UP") {
-        client.network.send(encodePacket([PID.MOVE, 39]));
-        local.onMove(-speed, 0);
-      }
-      if (key === "RIGHT") {
-        client.network.send(encodePacket([PID.MOVE, 38]));
-        local.onMove(0, speed);
-      }
-      if (key === "DOWN") {
-        client.network.send(encodePacket([PID.MOVE, 40]));
-        local.onMove(0, -speed);
+      if (!local.isMoving) {
+        if (key === "LEFT") {
+          client.network.send(encodePacket([PID.MOVE, 37]));
+          local.onMove(spd, 0);
+        }
+        if (key === "UP") {
+          client.network.send(encodePacket([PID.MOVE, 39]));
+          local.onMove(-spd, 0);
+        }
+        if (key === "RIGHT") {
+          client.network.send(encodePacket([PID.MOVE, 38]));
+          local.onMove(0, spd);
+        }
+        if (key === "DOWN") {
+          client.network.send(encodePacket([PID.MOVE, 40]));
+          local.onMove(0, -spd);
+        }
       }
     }
   };
-}, 1e3/30);
+}, 20);
 
 window.addEventListener("mousewheel", (e) => {
   e.preventDefault();

@@ -157,7 +157,7 @@ export default class Renderer {
       );*/
       ctx.drawImage(
         buffer,
-        (entity.size.x * 3) * 2, (entity.size.y * entity.frame) * 2,
+        (entity.size.x * entity.frame) * 2, (entity.size.y * entity.frameIdx) * 2,
         entity.size.x * 2, entity.size.y * 2,
         x, y,
         width, height

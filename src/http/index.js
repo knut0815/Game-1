@@ -149,14 +149,10 @@ export default class HTTPServer {
       default:
       case "/":
       case "index":
-        if (DEV_MODE) {
-          // refresh game client bundle before answering
-          this.transform("src/client/index.js", PUBLIC_PATH + "bundle.js").then(() => {
-            this.sendView("index");
-          });
-        } else {
+        // TODO: refresh game client bundle before answering
+        this.transform("src/client/index.js", PUBLIC_PATH + "bundle.js").then(() => {
           this.sendView("index");
-        }
+        });
       break;
       case "/login":
         this.sendView("login");

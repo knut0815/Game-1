@@ -82,7 +82,9 @@ export default class Network {
   onMessage(e) {
     let data = e.data;
     if (data instanceof ArrayBuffer && data.byteLength >= 1) {
-      this.processPacket(new Buffer(data));
+      setTimeout(() => {
+        this.processPacket(new Buffer(data));
+      }, 180);
     }
   }
 

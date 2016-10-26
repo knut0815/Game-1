@@ -1,3 +1,7 @@
+import {
+  MapEntity
+} from "../../shared/MapEntity";
+
 /**
  * @class Grid
  */
@@ -12,6 +16,7 @@ export default class Grid {
     this.factor = 1;
     this.array = [];
     this.instance = instance;
+    this.entities = instance.entities;
     this.resize(128, 64);
     this.setTile(2, 2, 1);
     this.getTile(2, 2);
@@ -84,6 +89,52 @@ export default class Grid {
    */
   isCollisionAt(x, y) {
     return (this.isCollisionTile(this.getTile(x, y)));
+  }
+
+  /**
+   * @param {MapEntity} entity
+   * @return {Boolean}
+   */
+  entityCanMove(entity) {
+    let ii = 0;
+    let length = this.entities.length;
+    for (; ii < length; ++ii) {
+      if (this.entityOverlaps(entity, this.entities[ii])) {
+        return (false);
+      }
+    };
+    return (true);
+  }
+
+  /**
+   * @param {MapEntity} entityA
+   * @param {MapEntity} entityB
+   * @return {Boolean}
+   */
+  entityOverlaps(entityA, entityB) {
+    return (true);
+  }
+
+  /**
+   * @param {MapEntity} entityA
+   * @param {MapEntity} entityB
+   * @return {Boolean}
+   */
+  intersectCollisionBoxes(entityA, entityB) {
+
+    let boxA = entityA.collisionBox;
+    let boxB = entityB.collisionBox;
+
+    let ii = 0;
+    let length = boxA.length;
+    for (; ii < length; ++ii) {
+      if (boxA[ii] === 1 && boxB[entityA.position.x + ii] === 1) {
+        return (true);
+      }
+    };
+
+    return (false);
+
   }
 
 }
