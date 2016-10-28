@@ -16,6 +16,7 @@ export default class MapEntity {
 	constructor(obj) {
 		this.id = obj.id || 0;
 		this.size = new Point(obj.width || 0, obj.height || 0);
+		this.last = new Point(0, 0);
 		this.next = new Point(0, 0);
 		this.position = new Point(obj.x || 0, obj.y || 0);
 		this.texture = null;
@@ -63,6 +64,8 @@ export default class MapEntity {
 			}
 		}, 120);
 		if (!client.grid.entityCanMoveTo(this)) return void 0;
+		this.last.x = this.position.x;
+		this.last.y = this.position.y;
 		this.position.x += x;
 		this.position.y += y;
 	}

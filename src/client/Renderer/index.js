@@ -55,7 +55,20 @@ export default class Renderer {
     this.drawGrid();
     this.drawMap();
     this.drawEntities();
+    this.drawMousePosition();
     window.requestAnimationFrame(() => this.draw());
+  }
+
+  drawMousePosition() {
+    let x = this.instance.mousePosition.x;
+    let y = this.instance.mousePosition.y;
+    let ctx = this.ctx;
+    let relative = this.camera.getGameRelativeOffset(x, y);
+    let rx = relative.x << 0;
+    let ry = relative.y << 0;
+    ctx.fillStyle = "#fff";
+    ctx.font = `${this.camera.scale}px Arial`;
+    ctx.fillText(`(x:${rx}, y:${ry})`, x, y);
   }
 
   drawGrid() {

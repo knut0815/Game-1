@@ -8,6 +8,7 @@ import MapEntity from "../shared/MapEntity";
 import poly from "../polyfill";
 
 import {
+  Point,
   pointIntersectsEntity
 } from "../math";
 
@@ -34,6 +35,7 @@ export default class Client {
   constructor() {
     this.node = game;
     this.entities = [];
+    this.mousePosition = new Point(0, 0);
     this.grid = new Grid(this);
     this.camera = new Camera(this);
     this.network = new Network(this);
@@ -43,7 +45,7 @@ export default class Client {
 
   init() {
     this.addLocalPlayer({
-      x: 8,
+      x: 14,
       y: 8
     });
     /*this.entities.push(new MapEntity({
@@ -58,6 +60,17 @@ export default class Client {
         1, 1, 1, 1
       ]
     }));*/
+    let scale = localStorage.getItem("dox::scale");
+    let position = localStorage.getItem("dox::position");
+    if (scale !== null && position !== null) {
+      let pos = position.split(",");
+      this.camera.scale = scale << 0;
+      this.camera.position.x = parseFloat(pos[0]);
+      this.camera.position.y = parseFloat(pos[1]);
+    } else {
+      localStorage.setItem("dox::scale", this.camera.scale);
+      localStorage.setItem("dox::position", this.camera.position.x + "," + this.camera.position.y);
+    }
   }
 
   addPlayer(obj) {
@@ -71,11 +84,11 @@ export default class Client {
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
-      0, 1, 1, 1, 1, 1, 0,
-      0, 1, 1, 1, 1, 1, 0,
-      0, 1, 1, 1, 1, 1, 0,
-      0, 1, 1, 1, 1, 1, 0,
-      0, 1, 1, 1, 1, 1, 0,
+      0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
       1, 0, 0, 0, 0, 0, 1
     ];
@@ -180,6 +193,16 @@ export default class Client {
     }
   }
 
+  /**
+   * @param {Number} x
+   * @param {Number} y
+   */
+  onMouseMove(x, y) {
+    //console.log(x, y);
+    client.mousePosition.x = x;
+    client.mousePosition.y = y; 
+  }
+
 }
 
 let keys = {
@@ -271,6 +294,7 @@ game.addEventListener("contextmenu", (e) => {
 
 game.addEventListener("mousemove", (e) => {
   e.preventDefault();
+  client.onMouseMove(e.clientX, e.clientY);
   if (!isMouseDown || selection !== null) return void 0;
   client.camera.onDrag(e.clientX, e.clientY);
 });

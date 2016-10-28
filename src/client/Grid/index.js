@@ -1,4 +1,8 @@
 import {
+  rectanglesOverlap
+} from "../../math";
+
+import {
   MapEntity
 } from "../../shared/MapEntity";
 
@@ -117,33 +121,13 @@ export default class Grid {
    */
   entitiesDoCollide(entityA, entityB) {
     // check if entity rectangles overlap
-    if (this.entitiesOverlap(
+    if (rectanglesOverlap(
       entityA.next.x, entityA.next.y,
       entityA.size.x, entityA.size.y,
       entityB.position.x, entityB.position.y,
       entityB.size.x, entityB.size.y
     )) return (this.intersectCollisionBoxes(entityA, entityB));
     return (false);
-  }
-
-  /**
-   * @param {Number} x1
-   * @param {Number} y1
-   * @param {Number} w1
-   * @param {Number} h1
-   * @param {Number} x2
-   * @param {Number} y2
-   * @param {Number} w2
-   * @param {Number} h2
-   * @return {Boolean}
-   */
-  entitiesOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-    return !(
-      x1 + w1 - 1 < x2 ||
-      y1 + h1 - 1 < y2 ||
-      x1 > x2 + w2 - 1 ||
-      y1 > y2 + h2 - 1
-    );
   }
 
   /**
@@ -166,15 +150,28 @@ export default class Grid {
     let w2 = entityB.size.x;
     let h2 = entityB.size.y;
 
-    let ii = 0;
-    let length = boxA.length;
+    let dx = Math.max(x1, x2);
+    let dy = Math.max(y1, y2);
+    let dw = Math.min(x1 + w1, x2 + w2) - dx;
+    let dh = Math.min(y1 + h1, y2 + h2) - dy;
 
+    let ii = 0;
+    let xx = 0;
+    let yy = 0;
+    let length = dw * dh;
     for (; ii < length; ++ii) {
-      if (boxA[ii] !== 1) continue;
-      let yy = (h2 + y1 - y2) - 1;
-      let xx = (w2 + x1 - x2) - 1;
-      if (boxB[yy * xx] === 1) return (true);
+      if (boxB[xx + yy] !== 1) continue;
+      console.log(dx, dy);
+      let cx = 0; 
+      let cy = 0;
+      if (++xx >= dw) {
+        yy += w1; xx = 0;
+      }
     };
+
+    console.log("x:", dx, "y:", dy, "w:", dw, "h:", dh);
+
+    console.log("---------------------------");
 
     return (false);
 

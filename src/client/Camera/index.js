@@ -63,17 +63,7 @@ export default class Camera {
 		this.position.y += y - this.drag.y;
 		this.drag.x = x;
 		this.drag.y = y;
-	}
-
-	/**
-	 * @param {Number} x
-	 * @param {Number} y
-	 * @param {Number} z
-	 */
-	onMove(x, y, z) {
-		this.position.x += x;
-		this.position.y += y;
-		this.position.z += z;
+		this.saveToLocalStorage();
 	}
 
 	/**
@@ -86,6 +76,12 @@ export default class Camera {
 		this.scale += n;
 		this.position.x -= this.last.x * (zoomScale(this.scale) - zoomScale(scale));
 		this.position.y -= this.last.y * (zoomScale(this.scale) - zoomScale(scale));
+		this.saveToLocalStorage();
+	}
+
+	saveToLocalStorage() {
+		localStorage.setItem("dox::scale", this.scale);
+		localStorage.setItem("dox::position", `${this.position.x},${this.position.y}`);
 	}
 
 	/**
