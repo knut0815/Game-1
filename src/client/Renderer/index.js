@@ -11,7 +11,8 @@ import {
 } from "../../utils";
 
 import {
-  DEV_MODE
+  DEV_MODE,
+  DRAW_COLLISIONS
 } from "../../cfg";
 
 /**
@@ -25,6 +26,10 @@ export default class Renderer {
    */
   constructor(instance) {
 
+    this.delta = 0;
+    this.lifetime = 0;
+    this.lastTick = Date.now();
+
     this.grid = instance.grid;
     this.camera = instance.camera;
     this.entities = instance.entities;
@@ -35,8 +40,6 @@ export default class Renderer {
     this.ctx.imageSmoothingEnabled = false;
 
     window.addEventListener("resize", this::this.onResize);
-
-    this.init();
 
   }
 
@@ -50,13 +53,23 @@ export default class Renderer {
   }
 
   draw() {
+    let delta = Date.now() - this.lastTick;
+    let dt = delta / 1e3;
+    this.lastTick = Date.now();
+    this.delta = dt;
+    this.lifetime += dt;
+    this.camera.onUpdate();
+    this.render();
+    window.requestAnimationFrame(() => this.draw());
+  }
+
+  render() {
     this.sort();
     this.clear();
     this.drawGrid();
     this.drawMap();
     this.drawEntities();
     this.drawMousePosition();
-    window.requestAnimationFrame(() => this.draw());
   }
 
   drawMousePosition() {
@@ -123,18 +136,14 @@ export default class Renderer {
   }
 
   drawEntities() {
-
     let ii = 0;
-    let length = this.entities.length;
-
-    for (; ii < length; ++ii) {
+    for (; ii < this.entities.length; ++ii) {
       this.drawEntity(this.entities[ii]);
     };
-
   }
 
   /**
-   * @param {Object} entity
+   * @param {MapEntity} entity
    */
   drawEntity(entity) {
 
@@ -145,18 +154,18 @@ export default class Renderer {
     let cx = this.camera.position.x | 0;
     let cy = this.camera.position.y | 0;
 
-    let x = (cx + (entity.position.x * scale)) | 0;
-    let y = (cy + (entity.position.y * scale)) | 0;
+    let x = (cx + (entity.draw.x * scale)) | 0;
+    let y = (cy + (entity.draw.y * scale)) | 0;
 
     let width = (entity.size.x * scale) | 0;
     let height = (entity.size.y * scale) | 0;
 
-    if (DEV_MODE === true) {
+    /*if (DEV_MODE === true) {
       ctx.globalAlpha = .1;
       ctx.fillStyle = "blue";
       ctx.fillRect(x, y, width, height);
       ctx.globalAlpha = 1.0;
-    }
+    }*/
 
     if (entity.hasTexture && entity.texture.isLoaded) {
       let buffer = entity.texture.buffer.canvas;
@@ -175,7 +184,7 @@ export default class Renderer {
         x, y,
         width, height
       );
-      if (DEV_MODE === true) {
+      if (DRAW_COLLISIONS === true) {
         if (entity.isCollidable === true) {
           this.drawCollisionBox(entity, x, y);
         }

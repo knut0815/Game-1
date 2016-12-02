@@ -67,18 +67,32 @@ export function getSprite(url) {
 }
 
 /**
+ * @param {Number} width
+ * @param {Number} height
+ * @return {CanvasRenderingContext2D}
+ */
+export function createCanvas(width, height) {
+
+  let canvas = document.createElement("canvas");
+  let context = canvas.getContext("2d");
+
+  canvas.width = width;
+  canvas.height = height;
+
+  context.imageSmoothing = false;
+
+  return (context);
+
+}
+
+/**
  * @param {Image} img
  * @return {CanvasRenderingContext2D}
  */
 export function img2canvas(img) {
 
-	let canvas = document.createElement("canvas");
-	let context = canvas.getContext("2d");
+  let context = createCanvas(img.width, img.height);
 
-	canvas.width = img.width;
-	canvas.height = img.height;
-
-	context.imageSmoothing = false;
 	context.drawImage(img, 0, 0, img.width, img.height);
 
 	return (context);

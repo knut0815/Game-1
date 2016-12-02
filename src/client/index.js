@@ -43,23 +43,61 @@ export default class Client {
     this.init();
   }
 
+  /**
+   * @param {MapEntity} entity
+   */
+  updateEntity(entity) {
+    if (entity.animations.length <= 0) return void 0;
+    let ii = 0;
+    let animation = null;
+    for (; ii < entity.animations.length; ++ii) {
+      animation = entity.animations[ii];
+      animation.play();
+      if (animation.isFinished === true) {
+        entity.animations.splice(ii, 1);
+      }
+    };
+  }
+
+  updateLogic() {
+    let ii = 0;
+    for (; ii < this.entities.length; ++ii) {
+      this.updateEntity(this.entities[ii]);
+    };
+  }
+
+  initLoops() {
+    this.renderer.init();
+    setInterval(() => {
+      this.updateKeys();
+      this.updateLogic();
+    }, 30);
+  }
+
+  updateKeys() {
+    // movement
+    let spd = 1;
+    let packet = null;
+    for (let key in keys) {
+      if (keys[key] === true) {
+        if (!local.isMoving) {
+          if (key === "LEFT") local.onMove(spd, 0);
+          if (key === "UP") local.onMove(-spd, 0);
+          if (key === "RIGHT") local.onMove(0, spd);
+          if (key === "DOWN") local.onMove(0, -spd);
+          local.moveKeyPressed = true;
+        }
+      }
+      local.moveKeyPressed = false;
+    };
+  }
+
   init() {
+    this.initLoops();
     this.addLocalPlayer({
       x: 14,
       y: 8
     });
-    /*this.entities.push(new MapEntity({
-      x: 0,
-      y: 0,
-      width: 4,
-      height: 4,
-      collisionBox: [
-        1, 1, 1, 1,
-        1, 0, 0, 1,
-        1, 0, 0, 1,
-        1, 1, 1, 1
-      ]
-    }));*/
     let scale = localStorage.getItem("dox::scale");
     let position = localStorage.getItem("dox::position");
     if (scale !== null && position !== null) {
@@ -79,19 +117,20 @@ export default class Client {
     obj.frames = 6;
     obj.url = "assets/sprites/player_sheet.png";
     obj.collisionBox = [
-      1, 0, 0, 0, 0, 0, 1,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
+      0, 0, 1, 1, 1, 0, 0,
+      0, 1, 1, 1, 1, 1, 0,
+      0, 1, 1, 1, 1, 1, 0,
+      0, 1, 1, 1, 1, 1, 0,
       0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0,
-      1, 0, 0, 0, 0, 0, 1
+      0, 0, 0, 0, 0, 0, 0
     ];
+    //obj.collidable = false;
     let entity = new MapEntity(obj);
     this.entities.push(entity);
     return (entity);
@@ -101,6 +140,7 @@ export default class Client {
     let entity = this.addPlayer(obj);
     entity.isLocal = true;
     local = entity;
+    this.camera.setFollow(local);
   }
 
   getEntityByPosition(x, y) {
@@ -246,34 +286,6 @@ window.addEventListener("keyup", (e) => {
     break;
   };
 });
-
-setInterval(() => {
-  // movement
-  let spd = 1;
-  let packet = null;
-  for (let key in keys) {
-    if (keys[key] === true) {
-      if (!local.isMoving) {
-        if (key === "LEFT") {
-          client.network.send(encodePacket([PID.MOVE, 37]));
-          local.onMove(spd, 0);
-        }
-        if (key === "UP") {
-          client.network.send(encodePacket([PID.MOVE, 39]));
-          local.onMove(-spd, 0);
-        }
-        if (key === "RIGHT") {
-          client.network.send(encodePacket([PID.MOVE, 38]));
-          local.onMove(0, spd);
-        }
-        if (key === "DOWN") {
-          client.network.send(encodePacket([PID.MOVE, 40]));
-          local.onMove(0, -spd);
-        }
-      }
-    }
-  };
-}, 20);
 
 window.addEventListener("mousewheel", (e) => {
   e.preventDefault();

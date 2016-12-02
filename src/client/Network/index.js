@@ -84,7 +84,7 @@ export default class Network {
     if (data instanceof ArrayBuffer && data.byteLength >= 1) {
       setTimeout(() => {
         this.processPacket(new Buffer(data));
-      }, 180);
+      }, 5);
     }
   }
 

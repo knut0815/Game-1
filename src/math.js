@@ -26,6 +26,16 @@ export class Point {
 /**
  * @param {Number}
  * @param {Number}
+ * @return {Number}
+ */
+export function lerp(a, b, t) {
+  return (a * (1 - t) + b * t);
+}
+
+/**
+ * @param {Number}
+ * @param {Number}
+ * @return {Number}
  */
 export function zoomScale(n) {
   return (
@@ -33,6 +43,19 @@ export function zoomScale(n) {
     n < 0 ? -(n) + 1 :
     n + 1
   );
+}
+
+/**
+ * @param {Number}
+ * @param {Number}
+ * @return {Number}
+ */
+export function saw(t) {
+  if (t < 0.5) {
+    return (t / 0.5);
+  } else {
+    return (1 - (t - 0.5) / 0.5);
+  }
 }
 
 /**
@@ -56,6 +79,19 @@ export function rectanglesOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
 }
 
 /**
+ * @param {Number} x1
+ * @param {Number} y1
+ * @param {Number} x2
+ * @param {Number} y2
+ * @return {Boolean}
+ */
+export function linearDistance(x1, y1, x2, y2) {
+  let dx = x1 - x2;
+  let dy = y1 - y2;
+  return (Math.sqrt(dx * dx + dy * dy));
+}
+
+/**
  * @param {Number} x
  * @param {Number} y
  * @param {MapEntity} entity
@@ -68,4 +104,13 @@ export function pointIntersectsEntity(x, y, entity) {
     y >= entity.position.y &&
     y < entity.position.y + entity.size.y
   );
+}
+
+/**
+ * @param {Number} frm
+ * @param {Number} to
+ * @return {Number}
+ */
+export function getRandomInt(frm, to) {
+  return (((Math.random() * to) + frm) | 0);
 }
